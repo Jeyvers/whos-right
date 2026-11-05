@@ -14,7 +14,8 @@ import {TestnetIdentity} from "../src/testnet/TestnetIdentity.sol";
 /// Usage (encrypted keystore, never a raw key):
 ///   cast wallet import whosright-deployer --interactive
 ///   forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whosright-deployer --broadcast
-/// Optional env overrides: CASE_FEE, JURY_SIZE, MIN_POOL_SIZE, JOIN_WINDOW, DRAW_WINDOW, COMMIT_WINDOW, REVEAL_WINDOW
+/// Optional env overrides: JURY_SIZE, MIN_POOL_SIZE, JOIN_WINDOW, DRAW_WINDOW
+/// (fees and voting windows are fixed presets; the owner can later change fees within the cap)
 contract DeployTestnet is Script {
     uint256 internal constant CELO_SEPOLIA = 11142220;
 
@@ -31,13 +32,12 @@ contract DeployTestnet is Script {
                 identity: IIdentity(address(identity)),
                 randomnessSource: IRandomnessSource(address(rng)),
                 owner: msg.sender,
-                caseFee: vm.envOr("CASE_FEE", uint256(500e18)),
+                standardFee: 500e18, // Standard: 500 G$ per party, 6h max commit + 6h max reveal
+            fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
                 jurySize: vm.envOr("JURY_SIZE", uint256(5)),
                 minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(7)),
                 joinWindow: vm.envOr("JOIN_WINDOW", uint256(1 days)),
-                drawWindow: vm.envOr("DRAW_WINDOW", uint256(1 hours)),
-                commitWindow: vm.envOr("COMMIT_WINDOW", uint256(15 minutes)),
-                revealWindow: vm.envOr("REVEAL_WINDOW", uint256(15 minutes))
+                drawWindow: vm.envOr("DRAW_WINDOW", uint256(1 hours))
             })
         );
         vm.stopBroadcast();

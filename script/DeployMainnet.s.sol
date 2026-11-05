@@ -43,13 +43,12 @@ contract DeployMainnet is Script {
             identity: IIdentity(IDENTITY),
             randomnessSource: IRandomnessSource(address(0)), // set below
             owner: msg.sender, // deployer keystore at launch; move to a multisig after launch
-            caseFee: vm.envOr("CASE_FEE", uint256(500e18)),
+            standardFee: 500e18, // Standard: 500 G$ per party, 6h max commit + 6h max reveal
+            fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
             jurySize: vm.envOr("JURY_SIZE", uint256(5)),
             minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(11)),
             joinWindow: vm.envOr("JOIN_WINDOW", uint256(3 days)),
-            drawWindow: vm.envOr("DRAW_WINDOW", uint256(2 hours)), // Witnet usually 5-10 min; room for retries
-            commitWindow: vm.envOr("COMMIT_WINDOW", uint256(1 days)),
-            revealWindow: vm.envOr("REVEAL_WINDOW", uint256(1 days))
+            drawWindow: vm.envOr("DRAW_WINDOW", uint256(2 hours)) // Witnet usually 5-10 min; room for retries
         });
 
         vm.startBroadcast();
@@ -61,7 +60,8 @@ contract DeployMainnet is Script {
         console.log("WitnetRandomnessSource", address(rng));
         console.log("WhosRight             ", address(wr));
         console.log("owner                 ", msg.sender);
-        console.log("caseFee (wei)         ", cfg.caseFee);
+        console.log("standardFee (wei)     ", cfg.standardFee);
+        console.log("fastFee (wei)         ", cfg.fastFee);
         console.log("minPoolSize           ", cfg.minPoolSize);
     }
 }

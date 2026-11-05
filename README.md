@@ -27,19 +27,37 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 GoodDollar has no contracts on Celo Sepolia, and Witnet is not deployed there, so testnet uses the stand-ins above.
 GoodDollar's "development"/"staging" G$ and Identity also live on Celo **mainnet**, not a testnet.
 
+## Speeds
+
+Party A picks one of two presets when opening a case. There are no custom time limits.
+
+| Speed | Fee per party | Max commit stage | Max reveal stage |
+|---|---|---|---|
+| Standard | 500 G$ | 6 hours | 6 hours |
+| Fast | 1,500 G$ | 1 hour | 1 hour |
+
+The fee and both windows are copied onto the case when it is opened. Later fee changes by the owner never affect
+existing cases. B must pass the speed and fee they were shown to `joinCase`; if they differ the join reverts,
+and B always pays exactly what A paid.
+
+Stages end early: the commit stage ends the moment every juror has committed (the full reveal window starts then),
+and the reveal stage ends the moment every committed juror has revealed, so `finalize` can run immediately.
+
 ## How a case works
 
 1. **Juror pool.** Verified humans call `joinPool()` (free). One active entry per identity and per wallet.
-2. **Open.** A approves `caseFee` G$ and calls `openCase(contentHash, inviteSigner)`. Only a hash is stored.
+2. **Open.** A approves the speed's fee (`speedFee(speed)`) and calls `openCase(speed, contentHash, inviteSigner)`.
+   Only a hash is stored.
    `inviteSigner` is the address of a one-time key generated in A's browser; its private key goes in the share link.
 3. **Join.** B's client signs `joinDigest(caseId, B)` with the invite key and B calls
-   `joinCase(caseId, contentHash, signature)`, paying the same (locked) fee before `joinDeadline`.
+   `joinCase(caseId, contentHash, expectedSpeed, expectedFee, signature)`, paying the same locked fee before
+   `joinDeadline`. The frontend reads `getCase(caseId)` and shows the speed and fee before B signs.
    The signature commits to B's address, so someone copying it from the mempool cannot take the seat.
 4. **Request jury.** Anyone calls `requestJury(caseId)` with the CELO randomness fee. This freezes the pool snapshot.
 5. **Draw.** Once randomness is ready (Witnet: usually 5–10 min), anyone calls `drawJury(caseId)`.
 6. **Commit.** Each juror calls `commitVote(caseId, computeCommitment(caseId, juror, vote, salt))`. Vote 1 = A, 2 = B.
-7. **Reveal.** After the commit deadline (or as soon as every juror has committed) jurors call `revealVote(caseId, vote, salt)`.
-8. **Finalize.** Anyone calls `finalize(caseId)` after the reveal deadline, or once every committed juror has revealed.
+7. **Reveal.** Once the commit stage ends (deadline, or every juror committed) jurors call `revealVote(caseId, vote, salt)`.
+8. **Finalize.** Anyone calls `finalize(caseId)` once the reveal stage ends (deadline, or every committed juror revealed).
 9. **Withdraw.** Everyone pulls what they are owed with `withdraw()`.
 
 ### Outcomes
@@ -63,8 +81,9 @@ The deployer keystore is the owner at launch. Move ownership to a multisig after
 (`transferOwnership(multisig)` then `acceptOwnership()` from the multisig — `Ownable2Step`).
 
 1. `setNewCasesPaused(bool)` — stops/starts `openCase` only.
-2. `setCaseFee(uint256)` — fee for cases opened afterwards; must be `> 0` and `<= MAX_CASE_FEE` (10,000 G$).
-   Existing cases keep the fee locked at creation.
+2. `setSpeedFee(speed, uint256)` — per-party fee for NEW cases of that speed; must be `> 0` and
+   `<= MAX_CASE_FEE` (10,000 G$). Existing cases keep the fee and windows locked at creation.
+   The owner cannot change the commit/reveal windows (they are constants).
 3. `transferOwnership` / `acceptOwnership` / `renounceOwnership`.
 
 The owner **cannot** move or withdraw funds, change verdicts, change jurors, change the token/identity/randomness
@@ -83,6 +102,26 @@ source, or block joining, voting, finalizing, refunds or withdrawals. There is n
 - **Never trapped:** if no jury is drawn by `drawDeadline`, `cancelExpired` refunds both parties.
 - **Pool manipulation:** the draw only uses pool entries that were active at the request block. Joining or leaving
   the pool after that block cannot change who is drawn.
+
+## Why expired jurors are not skipped during the draw
+
+The draw deliberately reads no Identity state, because everything it could read can be changed after the random
+seed is public, which would let someone steer who fills a seat:
+
+- **Timing:** anyone may call `drawJury`, at any time in the draw window. GoodDollar verification expires on an
+  admin-set schedule (currently 1, then 7, then 180 days by verification count), so expiries happen constantly.
+  A caller could wait for a specific juror to expire, or draw before one does, to change the jury.
+- **Disconnecting:** a pool wallet that is a connected account can be disconnected instantly and for free.
+- **Renouncing or re-verifying:** a juror can change their own status after seeing the seed.
+
+Storing an expiry date at `joinPool` is not reliable either: the schedule depends on internal Identity counters
+and can be changed by GoodDollar's admins at any time.
+
+Instead, expired jurors are handled without any lever:
+- `removeInvalidPoolEntry(index)` lets anyone prune a pool entry that is no longer verified. Pruning only affects
+  future snapshots, so it cannot alter a pending draw. A keeper should prune regularly.
+- A drawn juror must still resolve to the same verified identity to commit; if not, the seat simply stays empty.
+  Fees are shared only among jurors who reveal, and a case with no reveals refunds both parties.
 
 ## Tests
 
@@ -105,15 +144,14 @@ forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whosrig
 forge script script/DeployMainnet.s.sol --rpc-url celo --account whosright-deployer
 ```
 
-Defaults (env-overridable: `CASE_FEE`, `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `DRAW_WINDOW`,
-`COMMIT_WINDOW`, `REVEAL_WINDOW`):
+Fees start at the presets (Standard 500, Fast 1,500 per party) on both networks. Voting windows are fixed presets.
+Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `DRAW_WINDOW`):
 
 | | Testnet | Mainnet |
 |---|---|---|
-| Fee per party | 500 tG$ | 500 G$ |
 | Jury size | 5 | 5 |
 | Min pool size | 7 | 11 |
-| Join / draw / commit / reveal | 1 d / 1 h / 15 min / 15 min | 3 d / 2 h / 1 d / 1 d |
+| Join window / draw window | 1 day / 1 hour | 3 days / 2 hours |
 
 ## Post-launch list
 
