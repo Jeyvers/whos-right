@@ -12,13 +12,12 @@ import {MockRandomness} from "../mocks/MockRandomness.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 abstract contract BaseTest is Test {
-    uint256 internal constant FEE = 500e18;
+    uint256 internal constant FEE = 500e18; // Standard
+    uint256 internal constant FAST_FEE = 1_500e18;
     uint256 internal constant JURY = 5;
     uint256 internal constant MIN_POOL = 7;
     uint256 internal constant JOIN_WINDOW = 1 days;
     uint256 internal constant DRAW_WINDOW = 1 hours;
-    uint256 internal constant COMMIT_WINDOW = 1 days;
-    uint256 internal constant REVEAL_WINDOW = 1 days;
 
     MockGoodDollar internal gd;
     MockIdentity internal id;
@@ -60,13 +59,12 @@ abstract contract BaseTest is Test {
             identity: IIdentity(address(id)),
             randomnessSource: IRandomnessSource(address(rng)),
             owner: owner,
-            caseFee: FEE,
+            standardFee: FEE,
+            fastFee: FAST_FEE,
             jurySize: jury,
             minPoolSize: minPool,
             joinWindow: JOIN_WINDOW,
-            drawWindow: DRAW_WINDOW,
-            commitWindow: COMMIT_WINDOW,
-            revealWindow: REVEAL_WINDOW
+            drawWindow: DRAW_WINDOW
         });
     }
 
@@ -100,18 +98,38 @@ abstract contract BaseTest is Test {
     }
 
     function _open() internal returns (uint256 caseId) {
+        return _openSpeed(WhosRight.Speed.Standard);
+    }
+
+    function _openSpeed(WhosRight.Speed speed) internal returns (uint256 caseId) {
         vm.prank(alice);
-        caseId = wr.openCase(CONTENT_A, inviteSigner);
+        caseId = wr.openCase(speed, CONTENT_A, inviteSigner);
+    }
+
+    /// @dev Joins with the terms read from the case, as B's client would after showing them.
+    function _join(uint256 caseId, address who) internal {
+        WhosRight.Case memory c = wr.getCase(caseId);
+        bytes memory sig = _sig(caseId, who);
+        vm.prank(who);
+        wr.joinCase(caseId, CONTENT_B, c.speed, c.fee, sig);
     }
 
     function _openAndJoin() internal returns (uint256 caseId) {
         caseId = _open();
-        vm.prank(bob);
-        wr.joinCase(caseId, CONTENT_B, _sig(caseId, bob));
+        _join(caseId, bob);
+    }
+
+    function _openAndJoinSpeed(WhosRight.Speed speed) internal returns (uint256 caseId) {
+        caseId = _openSpeed(speed);
+        _join(caseId, bob);
     }
 
     function _toDrawn(bytes32 seed) internal returns (uint256 caseId) {
-        caseId = _openAndJoin();
+        return _toDrawnSpeed(seed, WhosRight.Speed.Standard);
+    }
+
+    function _toDrawnSpeed(bytes32 seed, WhosRight.Speed speed) internal returns (uint256 caseId) {
+        caseId = _openAndJoinSpeed(speed);
         wr.requestJury(caseId);
         rng.fulfill(wr.getCase(caseId).randomnessId, seed);
         wr.drawJury(caseId);

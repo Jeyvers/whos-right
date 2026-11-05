@@ -59,13 +59,12 @@ contract CeloForkTest is Test {
                 identity: IIdentity(IDENTITY),
                 randomnessSource: IRandomnessSource(address(rng)),
                 owner: address(this),
-                caseFee: FEE,
+                standardFee: FEE,
+                fastFee: 1_500e18,
                 jurySize: 5,
                 minPoolSize: 7,
                 joinWindow: 1 days,
-                drawWindow: 1 hours,
-                commitWindow: 1 days,
-                revealWindow: 1 days
+                drawWindow: 1 hours
             })
         );
         partyA = humans[0];
@@ -107,10 +106,10 @@ contract CeloForkTest is Test {
     function test_Fork_FullFlowWithRealGoodDollarAndIdentity() public {
         uint256 balA = GD.balanceOf(partyA);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, partyB);
         vm.prank(partyB);
-        wr.joinCase(caseId, keccak256("B"), sig);
+        wr.joinCase(caseId, keccak256("B"), WhosRight.Speed.Standard, FEE, sig);
         assertEq(GD.balanceOf(address(wr)), 2 * FEE, "real G$ received in full (no transfer fee)");
         assertEq(GD.balanceOf(partyA), balA - FEE);
 
@@ -151,11 +150,11 @@ contract CeloForkTest is Test {
 
         _fund(alt);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, alt);
         vm.prank(alt);
         vm.expectRevert(WhosRight.SameIdentity.selector);
-        wr.joinCase(caseId, keccak256("B"), sig);
+        wr.joinCase(caseId, keccak256("B"), WhosRight.Speed.Standard, FEE, sig);
 
         // ...and cannot take a second jury seat for the same person.
         vm.prank(humans[2]);

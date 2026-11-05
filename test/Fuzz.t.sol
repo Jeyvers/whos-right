@@ -10,7 +10,7 @@ contract FuzzTest is BaseTest {
     function testFuzz_FeeSharing(uint256 fee, uint8 revealMask, uint8 voteMask, bytes32 seed) public {
         fee = bound(fee, 1, wr.MAX_CASE_FEE());
         vm.prank(owner);
-        wr.setCaseFee(fee);
+        wr.setSpeedFee(WhosRight.Speed.Standard, fee);
 
         uint256 caseId = _toDrawn(seed);
         address[] memory j = wr.getJurors(caseId);

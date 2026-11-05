@@ -19,7 +19,7 @@ contract WhosRightTest is BaseTest {
         assertEq(gd.balanceOf(address(wr)), FEE);
 
         vm.prank(bob);
-        wr.joinCase(caseId, CONTENT_B, _sig(caseId, bob));
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, _sig(caseId, bob));
         assertEq(gd.balanceOf(address(wr)), 2 * FEE);
 
         wr.requestJury(caseId);
@@ -80,7 +80,7 @@ contract WhosRightTest is BaseTest {
         _fund(eve);
         vm.prank(eve);
         vm.expectRevert(WhosRight.NotVerified.selector);
-        wr.openCase(CONTENT_A, inviteSigner);
+        wr.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
     }
 
     function test_Unverified_CannotJoinCase() public {
@@ -90,7 +90,7 @@ contract WhosRightTest is BaseTest {
         bytes memory sig = _sig(caseId, eve);
         vm.prank(eve);
         vm.expectRevert(WhosRight.NotVerified.selector);
-        wr.joinCase(caseId, CONTENT_B, sig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, sig);
     }
 
     function test_Unverified_CannotJoinPool() public {
@@ -104,7 +104,7 @@ contract WhosRightTest is BaseTest {
         vm.warp(block.timestamp + 181 days);
         vm.prank(alice);
         vm.expectRevert(WhosRight.NotVerified.selector);
-        wr.openCase(CONTENT_A, inviteSigner);
+        wr.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
     }
 
     function test_ConnectedWallet_CanActAsItsRoot() public {
@@ -113,7 +113,7 @@ contract WhosRightTest is BaseTest {
         id.connectAccount(aliceAlt);
         _fund(aliceAlt);
         vm.prank(aliceAlt);
-        uint256 caseId = wr.openCase(CONTENT_A, inviteSigner);
+        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
         assertEq(wr.getCase(caseId).rootA, alice);
     }
 
@@ -124,7 +124,7 @@ contract WhosRightTest is BaseTest {
         bytes memory sig = _sig(caseId, alice);
         vm.prank(alice);
         vm.expectRevert(WhosRight.SameIdentity.selector);
-        wr.joinCase(caseId, CONTENT_B, sig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, sig);
     }
 
     function test_SamePerson_ConnectedWalletCannotJoinOwnCase() public {
@@ -136,7 +136,7 @@ contract WhosRightTest is BaseTest {
         bytes memory sig = _sig(caseId, aliceAlt);
         vm.prank(aliceAlt);
         vm.expectRevert(WhosRight.SameIdentity.selector);
-        wr.joinCase(caseId, CONTENT_B, sig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, sig);
     }
 
     function test_SamePerson_ConnectedWalletCannotJoinPoolTwice() public {
@@ -214,10 +214,10 @@ contract WhosRightTest is BaseTest {
         vm.roll(block.number + 1);
 
         vm.prank(alice);
-        uint256 caseId = small.openCase(CONTENT_A, inviteSigner);
+        uint256 caseId = small.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(invitePk, small.joinDigest(caseId, bob));
         vm.prank(bob);
-        small.joinCase(caseId, CONTENT_B, abi.encodePacked(r, s, v));
+        small.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, abi.encodePacked(r, s, v));
         small.requestJury(caseId);
         rng.fulfill(small.getCase(caseId).randomnessId, SEED);
         small.drawJury(caseId);
@@ -255,9 +255,9 @@ contract WhosRightTest is BaseTest {
         _verify(mallory);
         vm.prank(mallory);
         vm.expectRevert(WhosRight.InvalidInvite.selector);
-        wr.joinCase(caseId, CONTENT_B, bobSig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, bobSig);
         vm.prank(bob);
-        wr.joinCase(caseId, CONTENT_B, bobSig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, bobSig);
         assertEq(wr.getCase(caseId).partyB, bob);
     }
 
@@ -266,16 +266,16 @@ contract WhosRightTest is BaseTest {
         bytes memory wrongKey = _sigWith(0xBAD, caseId, bob);
         vm.prank(bob);
         vm.expectRevert(WhosRight.InvalidInvite.selector);
-        wr.joinCase(caseId, CONTENT_B, wrongKey);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, wrongKey);
 
         bytes memory otherCase = _sig(caseId + 1, bob);
         vm.prank(bob);
         vm.expectRevert(WhosRight.InvalidInvite.selector);
-        wr.joinCase(caseId, CONTENT_B, otherCase);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, otherCase);
 
         vm.prank(bob);
         vm.expectRevert(WhosRight.InvalidInvite.selector);
-        wr.joinCase(caseId, CONTENT_B, hex"1234");
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, hex"1234");
     }
 
     function test_Invite_CannotJoinTwice() public {
@@ -285,7 +285,7 @@ contract WhosRightTest is BaseTest {
         bytes memory sig = _sig(caseId, carol);
         vm.prank(carol);
         vm.expectRevert(WhosRight.WrongStatus.selector);
-        wr.joinCase(caseId, CONTENT_B, sig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, sig);
     }
 
     function test_JoinDigestMatchesClientComputation() public view {
@@ -295,9 +295,9 @@ contract WhosRightTest is BaseTest {
     function test_InvalidInputs() public {
         vm.startPrank(alice);
         vm.expectRevert(WhosRight.InvalidContentHash.selector);
-        wr.openCase(bytes32(0), inviteSigner);
+        wr.openCase(WhosRight.Speed.Standard, bytes32(0), inviteSigner);
         vm.expectRevert(WhosRight.InvalidInvite.selector);
-        wr.openCase(CONTENT_A, address(0));
+        wr.openCase(WhosRight.Speed.Standard, CONTENT_A, address(0));
         vm.stopPrank();
     }
 
@@ -309,7 +309,7 @@ contract WhosRightTest is BaseTest {
         bytes memory sig = _sig(caseId, bob);
         vm.prank(bob);
         vm.expectRevert(WhosRight.DeadlinePassed.selector);
-        wr.joinCase(caseId, CONTENT_B, sig);
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, sig);
     }
 
     function test_NotJoined_FullRefundToA() public {
@@ -492,7 +492,7 @@ contract WhosRightTest is BaseTest {
 
     function test_Rounding_RemainderDistributed() public {
         vm.prank(owner);
-        wr.setCaseFee(1e18 + 1); // pot = 2e18 + 2, split 3 ways -> remainder 1... check exact sum
+        wr.setSpeedFee(WhosRight.Speed.Standard, 1e18 + 1); // pot = 2e18 + 2, split 3 ways -> remainder 1... check exact sum
         uint256 caseId = _toDrawn(SEED);
         address[] memory j = wr.getJurors(caseId);
         uint8[] memory v = _votes(1, 1, 2, 0, 0);
@@ -523,7 +523,7 @@ contract WhosRightTest is BaseTest {
 
         vm.prank(alice);
         vm.expectRevert(WhosRight.NewCasesArePaused.selector);
-        wr.openCase(CONTENT_A, inviteSigner);
+        wr.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
 
         // Joining, voting, finalizing, refunds and withdrawals all still work.
         address[] memory j = wr.getJurors(votingId);
@@ -551,16 +551,16 @@ contract WhosRightTest is BaseTest {
         vm.prank(owner);
         wr.setNewCasesPaused(true);
         vm.prank(bob);
-        wr.joinCase(caseId, CONTENT_B, _sig(caseId, bob));
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, _sig(caseId, bob));
     }
 
     function test_Fee_LockedPerCase() public {
         uint256 caseId = _open();
         vm.prank(owner);
-        wr.setCaseFee(1_000e18);
+        wr.setSpeedFee(WhosRight.Speed.Standard, 1_000e18);
         uint256 before = gd.balanceOf(bob);
         vm.prank(bob);
-        wr.joinCase(caseId, CONTENT_B, _sig(caseId, bob));
+        wr.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, _sig(caseId, bob));
         assertEq(before - gd.balanceOf(bob), FEE, "B pays the locked fee");
         assertEq(wr.getCase(caseId).fee, FEE);
         assertEq(wr.getCase(_open()).fee, 1_000e18);
@@ -569,14 +569,14 @@ contract WhosRightTest is BaseTest {
     function test_Fee_Cap() public {
         vm.startPrank(owner);
         vm.expectRevert(WhosRight.InvalidFee.selector);
-        wr.setCaseFee(10_000e18 + 1);
+        wr.setSpeedFee(WhosRight.Speed.Standard, 10_000e18 + 1);
         vm.expectRevert(WhosRight.InvalidFee.selector);
-        wr.setCaseFee(0);
-        wr.setCaseFee(10_000e18);
+        wr.setSpeedFee(WhosRight.Speed.Standard, 0);
+        wr.setSpeedFee(WhosRight.Speed.Standard, 10_000e18);
         vm.stopPrank();
 
         WhosRight.Config memory cfg = _config(5, 7);
-        cfg.caseFee = 10_000e18 + 1;
+        cfg.standardFee = 10_000e18 + 1;
         vm.expectRevert(WhosRight.InvalidFee.selector);
         new WhosRight(cfg);
     }
@@ -586,7 +586,7 @@ contract WhosRightTest is BaseTest {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         wr.setNewCasesPaused(true);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
-        wr.setCaseFee(1e18);
+        wr.setSpeedFee(WhosRight.Speed.Standard, 1e18);
         vm.stopPrank();
     }
 
@@ -601,7 +601,7 @@ contract WhosRightTest is BaseTest {
         vm.expectRevert(WhosRight.InvalidConfig.selector);
         new WhosRight(cfg);
         cfg = _config(5, 7);
-        cfg.commitWindow = 0;
+        cfg.joinWindow = 0;
         vm.expectRevert(WhosRight.InvalidConfig.selector);
         new WhosRight(cfg);
     }

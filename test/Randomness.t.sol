@@ -117,10 +117,10 @@ contract WhosRightWitnetTest is BaseTest {
 
     function test_FullFlowWithWitnetAdapter() public {
         vm.prank(alice);
-        uint256 caseId = wrw.openCase(CONTENT_A, inviteSigner);
+        uint256 caseId = wrw.openCase(WhosRight.Speed.Standard, CONTENT_A, inviteSigner);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(invitePk, _joinDigest(address(wrw), caseId, bob));
         vm.prank(bob);
-        wrw.joinCase(caseId, CONTENT_B, abi.encodePacked(r, s, v));
+        wrw.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, abi.encodePacked(r, s, v));
 
         address keeper = makeAddr("keeper");
         vm.deal(keeper, 1 ether);

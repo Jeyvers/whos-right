@@ -43,7 +43,7 @@ contract Handler is Test {
         address a = parties[bound(p, 0, parties.length - 1)];
         uint256 before = gd.balanceOf(address(wr));
         vm.prank(a);
-        try wr.openCase(keccak256(abi.encode(p)), vm.addr(INVITE_PK)) {
+        try wr.openCase(WhosRight.Speed(p % 2), keccak256(abi.encode(p)), vm.addr(INVITE_PK)) {
             ghostDeposited += gd.balanceOf(address(wr)) - before;
             nOpened++;
         } catch {}
@@ -57,9 +57,10 @@ contract Handler is Test {
             keccak256(abi.encode("WhosRight.join", block.chainid, address(wr), caseId, b))
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(INVITE_PK, digest);
+        WhosRight.Case memory k = wr.getCase(caseId);
         uint256 before = gd.balanceOf(address(wr));
         vm.prank(b);
-        try wr.joinCase(caseId, keccak256("b"), abi.encodePacked(r, s, v)) {
+        try wr.joinCase(caseId, keccak256("b"), k.speed, k.fee, abi.encodePacked(r, s, v)) {
             ghostDeposited += gd.balanceOf(address(wr)) - before;
             nJoined++;
         } catch {}

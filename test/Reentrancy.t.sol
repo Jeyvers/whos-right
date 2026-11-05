@@ -35,7 +35,7 @@ contract HookAttacker {
     }
 
     function openCase(bytes32 content, address signer) external returns (uint256) {
-        return wr.openCase(content, signer);
+        return wr.openCase(WhosRight.Speed.Standard, content, signer);
     }
 
     function commit(uint256 caseId, bytes32 c) external {
@@ -65,7 +65,7 @@ contract HookAttacker {
         _try(abi.encodeCall(WhosRight.withdraw, ()));
         _try(abi.encodeCall(WhosRight.cancelExpired, (targetCase)));
         _try(abi.encodeCall(WhosRight.finalize, (targetCase)));
-        _try(abi.encodeCall(WhosRight.openCase, (keccak256("x"), address(1))));
+        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, keccak256("x"), address(1))));
         armed = true;
     }
 
