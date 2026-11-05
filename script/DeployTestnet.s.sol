@@ -12,8 +12,8 @@ import {TestnetIdentity} from "../src/testnet/TestnetIdentity.sol";
 
 /// @notice Celo Sepolia deployment: test G$ (faucet), test Identity (self-verify), INSECURE randomness.
 /// Usage (encrypted keystore, never a raw key):
-///   cast wallet import whosright-deployer --interactive
-///   forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whosright-deployer --broadcast
+///   cast wallet import whos-right --interactive
+///   forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whos-right --broadcast
 /// Optional env overrides: JURY_SIZE, MIN_POOL_SIZE, JOIN_WINDOW, DRAW_WINDOW
 /// (fees and voting windows are fixed presets; the owner can later change fees within the cap)
 contract DeployTestnet is Script {
@@ -23,6 +23,8 @@ contract DeployTestnet is Script {
         require(block.chainid == CELO_SEPOLIA, "DeployTestnet: not Celo Sepolia");
 
         vm.startBroadcast();
+        // Owner = the broadcasting account (from --account), read explicitly.
+        (, address deployer,) = vm.readCallers();
         TestnetGoodDollar token = new TestnetGoodDollar();
         TestnetIdentity identity = new TestnetIdentity();
         InsecureTestnetRandomness rng = new InsecureTestnetRandomness();
@@ -31,9 +33,9 @@ contract DeployTestnet is Script {
                 token: IERC20(address(token)),
                 identity: IIdentity(address(identity)),
                 randomnessSource: IRandomnessSource(address(rng)),
-                owner: msg.sender,
+                owner: deployer,
                 standardFee: 500e18, // Standard: 500 G$ per party, 6h max commit + 6h max reveal
-            fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
+                fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
                 jurySize: vm.envOr("JURY_SIZE", uint256(5)),
                 minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(7)),
                 joinWindow: vm.envOr("JOIN_WINDOW", uint256(1 days)),
@@ -46,6 +48,6 @@ contract DeployTestnet is Script {
         console.log("TestnetIdentity     ", address(identity));
         console.log("InsecureRandomness  ", address(rng));
         console.log("WhosRight           ", address(wr));
-        console.log("owner               ", msg.sender);
+        console.log("owner               ", deployer);
     }
 }

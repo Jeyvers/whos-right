@@ -135,13 +135,13 @@ RUN_FORK_TESTS=true forge test --match-path test/fork  # real G$, Identity and W
 Uses an encrypted Foundry keystore. Never commit private keys or `.env` files.
 
 ```sh
-cast wallet import whosright-deployer --interactive
+cast wallet import whos-right --interactive
 
 # Celo Sepolia
-forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whosright-deployer --broadcast
+forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whos-right --broadcast
 
 # Celo mainnet — dry run first; broadcast only after explicit approval
-forge script script/DeployMainnet.s.sol --rpc-url celo --account whosright-deployer
+forge script script/DeployMainnet.s.sol --rpc-url celo --account whos-right
 ```
 
 Fees start at the presets (Standard 500, Fast 1,500 per party) on both networks. Voting windows are fixed presets.

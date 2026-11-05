@@ -18,9 +18,9 @@ interface IDecimals {
 
 /// @notice Celo MAINNET deployment. DO NOT BROADCAST without explicit approval.
 /// Dry run (no broadcast):
-///   forge script script/DeployMainnet.s.sol --rpc-url celo --account whosright-deployer
+///   forge script script/DeployMainnet.s.sol --rpc-url celo --account whos-right
 /// Broadcast (only after approval):
-///   forge script script/DeployMainnet.s.sol --rpc-url celo --account whosright-deployer --broadcast
+///   forge script script/DeployMainnet.s.sol --rpc-url celo --account whos-right --broadcast
 /// Addresses come from GoodDollar's GoodProtocol releases/deployment.json ("production-celo") and Witnet's
 /// official randomness contract-address catalog; each is sanity-checked on-chain before deploying.
 contract DeployMainnet is Script {
@@ -42,7 +42,7 @@ contract DeployMainnet is Script {
             token: IERC20(GOOD_DOLLAR),
             identity: IIdentity(IDENTITY),
             randomnessSource: IRandomnessSource(address(0)), // set below
-            owner: msg.sender, // deployer keystore at launch; move to a multisig after launch
+            owner: address(0), // set to the deployer below; move to a multisig after launch
             standardFee: 500e18, // Standard: 500 G$ per party, 6h max commit + 6h max reveal
             fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
             jurySize: vm.envOr("JURY_SIZE", uint256(5)),
@@ -52,14 +52,17 @@ contract DeployMainnet is Script {
         });
 
         vm.startBroadcast();
+        // Owner = the broadcasting account (from --account), read explicitly.
+        (, address deployer,) = vm.readCallers();
         WitnetRandomnessSource rng = new WitnetRandomnessSource(IWitnetRandomnessV2(WITNET_RANDOMNESS));
         cfg.randomnessSource = IRandomnessSource(address(rng));
+        cfg.owner = deployer;
         wr = new WhosRight(cfg);
         vm.stopBroadcast();
 
         console.log("WitnetRandomnessSource", address(rng));
         console.log("WhosRight             ", address(wr));
-        console.log("owner                 ", msg.sender);
+        console.log("owner                 ", deployer);
         console.log("standardFee (wei)     ", cfg.standardFee);
         console.log("fastFee (wei)         ", cfg.fastFee);
         console.log("minPoolSize           ", cfg.minPoolSize);
