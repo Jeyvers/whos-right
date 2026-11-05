@@ -10,3 +10,6 @@ broadcast/**/dry-run/
 !.env.example
 *.key
 keystore/
+
+# Throwaway testnet smoke-test wallets (private keys) - never commit
+.smoke/
