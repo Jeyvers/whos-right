@@ -32,6 +32,10 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     uint256 public constant MAX_DRAW_ATTEMPTS = 300;
     uint256 public constant MAX_WINDOW = 30 days;
 
+    /// @notice Preset maximum commit and reveal windows. Not configurable by anyone.
+    uint256 public constant STANDARD_STAGE_WINDOW = 6 hours;
+    uint256 public constant FAST_STAGE_WINDOW = 1 hours;
+
     uint8 public constant VOTE_PARTY_A = 1;
     uint8 public constant VOTE_PARTY_B = 2;
 
@@ -44,8 +48,6 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     uint256 public immutable minPoolSize;
     uint256 public immutable joinWindow;
     uint256 public immutable drawWindow;
-    uint256 public immutable commitWindow;
-    uint256 public immutable revealWindow;
 
     // ---------------------------------------------------------------------------------------------
     // Types
@@ -59,6 +61,12 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         Voting, // jury drawn: commit, then reveal
         Resolved, // verdict reached, jurors credited
         Refunded // no verdict, parties credited
+    }
+
+    /// @notice Chosen by Party A. Standard: 6h max commit + 6h max reveal. Fast: 1h + 1h, higher fee.
+    enum Speed {
+        Standard,
+        Fast
     }
 
     enum Verdict {
@@ -83,12 +91,15 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         address partyB;
         address rootB;
         address inviteSigner;
+        Speed speed;
         Status status;
         Verdict verdict;
         RefundReason refundReason;
         bytes32 contentA;
         bytes32 contentB;
-        uint256 fee; // locked at creation
+        uint256 fee; // per party, locked at creation
+        uint64 commitWindow; // max commit stage length, locked at creation
+        uint64 revealWindow; // max reveal stage length, locked at creation
         uint256 depositA; // G$ actually received from A
         uint256 depositB; // G$ actually received from B
         uint64 joinDeadline;
@@ -122,7 +133,8 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     // Storage
     // ---------------------------------------------------------------------------------------------
 
-    uint256 public caseFee;
+    /// @notice Per-party fee for NEW cases of each speed. Existing cases keep their locked fee.
+    mapping(Speed => uint256) public speedFee;
     bool public newCasesPaused;
     uint256 public caseCount;
 
@@ -152,9 +164,12 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         uint256 indexed caseId,
         address indexed partyA,
         address rootA,
+        Speed speed,
         bytes32 contentHash,
         address inviteSigner,
         uint256 fee,
+        uint64 commitWindow,
+        uint64 revealWindow,
         uint256 deposit,
         uint64 joinDeadline
     );
@@ -165,6 +180,8 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     event RandomnessRetried(uint256 indexed caseId, uint256 randomnessId);
     event JuryDrawn(uint256 indexed caseId, address[] jurors, uint64 commitDeadline, uint64 revealDeadline);
     event VoteCommitted(uint256 indexed caseId, address indexed juror);
+    event CommitStageEnded(uint256 indexed caseId, uint64 revealDeadline);
+    event RevealStageEnded(uint256 indexed caseId);
     event VoteRevealed(uint256 indexed caseId, address indexed juror, uint8 vote);
     event CaseResolved(
         uint256 indexed caseId, Verdict verdict, uint8 votesA, uint8 votesB, uint8 reveals, uint256 pot
@@ -174,7 +191,7 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     event Withdrawn(address indexed account, uint256 amount);
     event JurorJoinedPool(address indexed wallet, address indexed root, uint256 entryIndex);
     event JurorLeftPool(address indexed wallet, address indexed root, uint256 entryIndex);
-    event CaseFeeChanged(uint256 oldFee, uint256 newFee);
+    event SpeedFeeChanged(Speed indexed speed, uint256 oldFee, uint256 newFee);
     event NewCasesPausedSet(bool paused);
 
     // ---------------------------------------------------------------------------------------------
@@ -188,6 +205,7 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     error SameIdentity();
     error InvalidInvite();
     error InvalidContentHash();
+    error TermsMismatch();
     error WrongStatus();
     error DeadlinePassed();
     error DeadlineNotReached();
@@ -217,13 +235,12 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         IIdentity identity;
         IRandomnessSource randomnessSource;
         address owner;
-        uint256 caseFee;
+        uint256 standardFee;
+        uint256 fastFee;
         uint256 jurySize;
         uint256 minPoolSize;
         uint256 joinWindow;
         uint256 drawWindow;
-        uint256 commitWindow;
-        uint256 revealWindow;
     }
 
     constructor(Config memory cfg) Ownable(cfg.owner) {
@@ -234,11 +251,10 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         if (cfg.jurySize == 0 || cfg.jurySize % 2 == 0 || cfg.jurySize > MAX_JURY_SIZE) revert InvalidConfig();
         if (cfg.minPoolSize < cfg.jurySize) revert InvalidConfig();
         if (
-            cfg.joinWindow == 0 || cfg.drawWindow == 0 || cfg.commitWindow == 0 || cfg.revealWindow == 0
-                || cfg.joinWindow > MAX_WINDOW || cfg.drawWindow > MAX_WINDOW || cfg.commitWindow > MAX_WINDOW
-                || cfg.revealWindow > MAX_WINDOW
+            cfg.joinWindow == 0 || cfg.drawWindow == 0 || cfg.joinWindow > MAX_WINDOW || cfg.drawWindow > MAX_WINDOW
         ) revert InvalidConfig();
-        if (cfg.caseFee == 0 || cfg.caseFee > MAX_CASE_FEE) revert InvalidFee();
+        if (cfg.standardFee == 0 || cfg.standardFee > MAX_CASE_FEE) revert InvalidFee();
+        if (cfg.fastFee == 0 || cfg.fastFee > MAX_CASE_FEE) revert InvalidFee();
 
         token = cfg.token;
         identity = cfg.identity;
@@ -247,9 +263,8 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         minPoolSize = cfg.minPoolSize;
         joinWindow = cfg.joinWindow;
         drawWindow = cfg.drawWindow;
-        commitWindow = cfg.commitWindow;
-        revealWindow = cfg.revealWindow;
-        caseFee = cfg.caseFee;
+        speedFee[Speed.Standard] = cfg.standardFee;
+        speedFee[Speed.Fast] = cfg.fastFee;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -262,11 +277,11 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         emit NewCasesPausedSet(paused);
     }
 
-    /// @notice Sets the fee for cases opened from now on. Existing cases keep their locked fee.
-    function setCaseFee(uint256 newFee) external onlyOwner {
+    /// @notice Sets the per-party fee for NEW cases of `speed`. Existing cases keep their locked fee and windows.
+    function setSpeedFee(Speed speed, uint256 newFee) external onlyOwner {
         if (newFee == 0 || newFee > MAX_CASE_FEE) revert InvalidFee();
-        emit CaseFeeChanged(caseFee, newFee);
-        caseFee = newFee;
+        emit SpeedFeeChanged(speed, speedFee[speed], newFee);
+        speedFee[speed] = newFee;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -315,11 +330,16 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     // Case lifecycle
     // ---------------------------------------------------------------------------------------------
 
-    /// @notice Party A opens a case and pays the current fee (approve `caseFee` G$ first).
+    /// @notice Party A opens a case at a preset speed and pays that speed's current fee (approve it first).
+    /// @param speed Standard (6h max per voting stage) or Fast (1h max per stage, higher fee).
     /// @param contentHash Hash/digest of A's off-chain argument. Never put text or personal data on-chain.
     /// @param inviteSigner Address of a one-time key generated by A's client. Its private key goes in the
     ///        share link; B proves possession by signing their own address (see `joinCase`).
-    function openCase(bytes32 contentHash, address inviteSigner) external nonReentrant returns (uint256 caseId) {
+    function openCase(Speed speed, bytes32 contentHash, address inviteSigner)
+        external
+        nonReentrant
+        returns (uint256 caseId)
+    {
         if (newCasesPaused) revert NewCasesArePaused();
         if (contentHash == bytes32(0)) revert InvalidContentHash();
         if (inviteSigner == address(0)) revert InvalidInvite();
@@ -331,7 +351,11 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         c.rootA = rootA;
         c.inviteSigner = inviteSigner;
         c.contentA = contentHash;
-        c.fee = caseFee;
+        c.speed = speed;
+        c.fee = speedFee[speed];
+        uint64 stageWindow = uint64(speed == Speed.Fast ? FAST_STAGE_WINDOW : STANDARD_STAGE_WINDOW);
+        c.commitWindow = stageWindow;
+        c.revealWindow = stageWindow;
         c.status = Status.Open;
         c.joinDeadline = uint64(block.timestamp + joinWindow);
 
@@ -339,15 +363,35 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         c.depositA = received;
         totalEscrowed += received;
 
-        emit CaseOpened(caseId, msg.sender, rootA, contentHash, inviteSigner, c.fee, received, c.joinDeadline);
+        emit CaseOpened(
+            caseId,
+            msg.sender,
+            rootA,
+            speed,
+            contentHash,
+            inviteSigner,
+            c.fee,
+            stageWindow,
+            stageWindow,
+            received,
+            c.joinDeadline
+        );
     }
 
-    /// @notice Party B joins with the invite and pays the case's locked fee (approve it first).
+    /// @notice Party B joins with the invite and pays the case's locked fee (the same amount A paid).
+    /// @param expectedSpeed / expectedFee The terms B was shown (`getCase`); reverts if they differ.
     /// @param inviteSignature Signature by the invite key over `joinDigest(caseId, msg.sender)`.
     ///        It is bound to msg.sender, so copying it from the mempool is useless to anyone else.
-    function joinCase(uint256 caseId, bytes32 contentHash, bytes calldata inviteSignature) external nonReentrant {
+    function joinCase(
+        uint256 caseId,
+        bytes32 contentHash,
+        Speed expectedSpeed,
+        uint256 expectedFee,
+        bytes calldata inviteSignature
+    ) external nonReentrant {
         Case storage c = _cases[caseId];
         if (c.status != Status.Open) revert WrongStatus();
+        if (c.speed != expectedSpeed || c.fee != expectedFee) revert TermsMismatch();
         if (block.timestamp > c.joinDeadline) revert DeadlinePassed();
         if (contentHash == bytes32(0)) revert InvalidContentHash();
         address rootB = _rootOf(msg.sender);
@@ -427,8 +471,9 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
             _jurorVotes[caseId][picked[i]].root = roots[i];
         }
         c.status = Status.Voting;
-        c.commitDeadline = uint64(block.timestamp + commitWindow);
-        c.revealDeadline = uint64(c.commitDeadline + revealWindow);
+        // Maximums; both stages end early once every juror has acted.
+        c.commitDeadline = uint64(block.timestamp + c.commitWindow);
+        c.revealDeadline = uint64(c.commitDeadline + c.revealWindow);
         emit JuryDrawn(caseId, picked, c.commitDeadline, c.revealDeadline);
     }
 
@@ -482,6 +527,13 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         jv.commitment = commitment;
         c.commits++;
         emit VoteCommitted(caseId, msg.sender);
+
+        // Last juror committed: end the commit stage now and start the reveal stage.
+        if (c.commits == _jurors[caseId].length) {
+            c.commitDeadline = uint64(block.timestamp);
+            c.revealDeadline = uint64(block.timestamp + c.revealWindow);
+            emit CommitStageEnded(caseId, c.revealDeadline);
+        }
     }
 
     /// @notice Reveal phase opens after the commit deadline, or early once every juror has committed.
@@ -503,6 +555,12 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
         if (vote == VOTE_PARTY_A) c.votesA++;
         else c.votesB++;
         emit VoteRevealed(caseId, msg.sender, vote);
+
+        // Every committed juror has revealed (and no one can commit any more): end the reveal stage now.
+        if (c.reveals == c.commits) {
+            c.revealDeadline = uint64(block.timestamp);
+            emit RevealStageEnded(caseId);
+        }
     }
 
     /// @notice Settles a case. Anyone may call after the reveal deadline, or as soon as every committed juror
@@ -602,7 +660,8 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
 
     function isRevealOpen(uint256 caseId) external view returns (bool) {
         Case storage c = _cases[caseId];
-        return c.status == Status.Voting && _revealOpen(caseId, c) && block.timestamp <= c.revealDeadline;
+        return c.status == Status.Voting && _revealOpen(caseId, c) && block.timestamp <= c.revealDeadline
+            && c.reveals < c.commits;
     }
 
     /// @notice Message B's client signs (EIP-191 personal_sign) with the invite key.
