@@ -16,6 +16,22 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 | `src/testnet/TestnetGoodDollar.sol` | Testnet only. G$ stand-in with a faucet |
 | `src/testnet/TestnetIdentity.sol` | Testnet only. Identity stand-in; anyone can self-verify |
 
+## Deployments
+
+### Celo Sepolia (chain 11142220) — testnet, deployed 2026-11-05
+
+| Contract | Address |
+|---|---|
+| WhosRight | `0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b` |
+| TestnetGoodDollar (tG$) | `0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36` |
+| TestnetIdentity | `0x71386420228BF609FA916EE1B676f3A81c803B2F` |
+| InsecureTestnetRandomness | `0x9C8943Cd33FC2e315b54b4CB761b88Dc6f70D804` |
+
+Owner `0x72ded37D6090671231b41ceEAb34f60A0FEA320c`. Jury 5, min pool 7, join window 1 day, draw window 1 hour,
+Standard 500 tG$ / Fast 1,500 tG$. Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
+
+Celo mainnet: not deployed.
+
 ## External addresses (Celo mainnet, chain 42220)
 
 | What | Address | Source |
