@@ -1,14 +1,83 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-bricolage);
+
+  --color-court: #3d1e8c;
+  --color-court-deep: #2a1366;
+  --color-verdict: #ffc93c;
+  --color-side-a: #ff5a6e;
+  --color-side-b: #14b8a6;
+  --color-ink: #1b1035;
+  --color-lilac: #f3eeff;
+}
+
+@layer base {
+  body {
+    background: var(--color-lilac);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-verdict);
+    outline-offset: 3px;
+  }
 }
 
 @layer components {
+  /* Chunky game button: ink outline + hard offset shadow that "presses" on click. */
   .btn {
-    @apply rounded-lg bg-zinc-900 px-4 py-3 font-semibold text-white disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border-[3px] border-ink bg-verdict px-6 py-3
+      font-display text-lg font-extrabold text-ink shadow-[0_5px_0_0_var(--color-ink)]
+      transition-[transform,box-shadow] duration-75 active:translate-y-[5px] active:shadow-none
+      disabled:cursor-wait disabled:opacity-90 disabled:active:translate-y-0;
   }
   .btn-secondary {
-    @apply rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-xl border-[3px] border-ink bg-white px-3 py-1.5
+      text-sm font-bold text-ink shadow-[0_3px_0_0_var(--color-ink)]
+      transition-[transform,box-shadow] duration-75 active:translate-y-[3px] active:shadow-none;
+  }
+  .tile {
+    @apply rounded-3xl border-[3px] border-ink bg-white shadow-[0_6px_0_0_var(--color-ink)];
+  }
+}
+
+/* The one orchestrated motion: the scales weigh both sides, then settle level. */
+@keyframes weigh {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(-12deg); }
+  45% { transform: rotate(9deg); }
+  65% { transform: rotate(-5deg); }
+  82% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes counter-weigh {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(12deg); }
+  45% { transform: rotate(-9deg); }
+  65% { transform: rotate(5deg); }
+  82% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
+.scales-beam {
+  transform-box: view-box;
+  transform-origin: 60px 34px;
+  animation: weigh 2.2s ease-in-out 0.3s both;
+}
+.scales-pan-a {
+  transform-box: view-box;
+  transform-origin: 22px 34px;
+  animation: counter-weigh 2.2s ease-in-out 0.3s both;
+}
+.scales-pan-b {
+  transform-box: view-box;
+  transform-origin: 98px 34px;
+  animation: counter-weigh 2.2s ease-in-out 0.3s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scales-beam,
+  .scales-pan-a,
+  .scales-pan-b {
+    animation: none;
   }
 }

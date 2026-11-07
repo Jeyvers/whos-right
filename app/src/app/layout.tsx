@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Bricolage_Grotesque, Nunito } from "next/font/google";
 import Link from "next/link";
+import { Scales } from "@/components/Scales";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
+const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Who's Right?",
@@ -13,22 +15,30 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-zinc-900">
+    <html lang="en" className={`${bricolage.variable} ${nunito.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans">
         <Providers>
-          <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-            <Link href="/" className="font-semibold">
-              Who&apos;s Right?
-            </Link>
-            <span className="rounded border border-zinc-400 px-1.5 text-xs font-semibold" aria-label="Adults only">
-              18+
-            </span>
+          <header className="bg-court text-white">
+            <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
+              <Link href="/" className="flex items-center gap-2 font-display text-xl font-extrabold">
+                <Scales className="h-9 w-9 rounded-full bg-white p-0.5" />
+                Who&apos;s Right?
+              </Link>
+              <span
+                className="rounded-full border-2 border-ink bg-side-a px-2.5 py-0.5 font-display text-sm font-extrabold text-white"
+                aria-label="Adults only, 18 and over"
+              >
+                18+
+              </span>
+            </div>
           </header>
-          <main className="flex-1 w-full max-w-xl mx-auto px-4 py-6">{children}</main>
-          <footer className="px-4 py-4 border-t border-zinc-200 text-sm text-zinc-600 flex gap-4">
-            <span>18+ only</span>
-            <Link href="/terms">Terms</Link>
-            <Link href="/privacy">Privacy</Link>
+          <main className="flex-1">{children}</main>
+          <footer className="bg-ink text-sm text-white/80">
+            <div className="mx-auto flex max-w-2xl flex-wrap gap-x-5 gap-y-1 px-4 py-5">
+              <span>For adults 18+ only</span>
+              <Link href="/terms" className="underline-offset-4 hover:underline">Terms</Link>
+              <Link href="/privacy" className="underline-offset-4 hover:underline">Privacy</Link>
+            </div>
           </footer>
         </Providers>
       </body>
