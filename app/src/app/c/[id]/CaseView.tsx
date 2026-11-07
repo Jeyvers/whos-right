@@ -79,7 +79,7 @@ export function CaseView() {
         <Title>{t?.title ?? (oneSided ? "Are they right?" : "Who's right?")}</Title>
       </div>
 
-      {winner && <Verdict c={c} winner={winner} isA={isA} isB={isB} oneSided={oneSided} />}
+      {winner && <Verdict caseId={caseId} c={c} jurors={jurors} winner={winner} isA={isA} isB={isB} oneSided={oneSided} />}
       {c.status === 6 && (
         <section id="verdict" className="scroll-mt-4">
         <Panel>
@@ -99,8 +99,8 @@ export function CaseView() {
         </div>
       ) : (
         <div className="grid gap-4">
-          <SideCard side="A" label={isA ? "Your side" : isB ? "Their side" : "First side"} text={sideText(t?.sideA, "A")} highlight={winner === "A"} />
-          <SideCard side="B" label={isB ? "Your side" : "Their side"} text={sideText(t?.sideB, "B")} highlight={winner === "B"} />
+          <SideCard side="A" label={isA ? "Your side" : isB ? "Their side" : "First side"} text={sideText(t?.sideA, "A")} highlight={winner === "A"} badge={winner === "A" ? "⚖️ The jury's pick" : undefined} />
+          <SideCard side="B" label={isB ? "Your side" : "Their side"} text={sideText(t?.sideB, "B")} highlight={winner === "B"} badge={winner === "B" ? "⚖️ The jury's pick" : undefined} />
         </div>
       )}
 
@@ -131,31 +131,91 @@ export function CaseView() {
   );
 }
 
-function Verdict(props: { c: ChainCase; winner: "A" | "B"; isA: boolean; isB: boolean; oneSided: boolean }) {
-  const { c, winner, isA, isB, oneSided } = props;
+function Confetti() {
+  const colors = ["#FFC93C", "#FF5A6E", "#14B8A6", "#ffffff"];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-0 overflow-visible">
+      {Array.from({ length: 28 }, (_, i) => (
+        <span
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${(i * 37) % 100}%`,
+            background: colors[i % colors.length],
+            animationDelay: `${(i % 7) * 0.08}s`,
+            ["--dx" as string]: `${((i * 53) % 120) - 60}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** "Results are in!": who won in plain words, each juror's vote popping in, and where the money went. */
+function Verdict(props: { caseId: bigint; c: ChainCase; jurors: readonly string[]; winner: "A" | "B"; isA: boolean; isB: boolean; oneSided: boolean }) {
+  const { caseId, c, jurors, winner, isA, isB, oneSided } = props;
+  const wr = network.whosRight!;
+  const votes = useReadContracts({
+    contracts: jurors.map((j) => ({ address: wr, abi: whosRightAbi, functionName: "getJurorVote" as const, args: [caseId, j as `0x${string}`] as const })),
+    allowFailure: false,
+    query: { enabled: jurors.length > 0 },
+  });
+  const party = isA || isB;
   const mine = (winner === "A" && isA) || (winner === "B" && isB);
   const right = winner === "A";
+  const pot = formatG(c.depositA + c.depositB);
+  const sym = network.tokenSymbol;
+  const forA = c.votesA;
+  const forB = c.votesB;
+
   const headline = oneSided
     ? isA
       ? right ? "You're right!" : "You're wrong."
       : `The jury says: ${right ? "Right" : "Wrong"}.`
-    : isA || isB
-      ? mine ? "You were right!" : "The jury sided with them."
-      : `${winner === "A" ? "The first side" : "Their side"} is right.`;
+    : party
+      ? mine ? "You were right!" : "The jury sided with the other side."
+      : `${winner === "A" ? "The first side" : "Their side"} wins.`;
+
+  const score = oneSided
+    ? `${forA} said right · ${forB} said wrong`
+    : party
+      ? `${isA ? forA : forB} for you · ${isA ? forB : forA} for them`
+      : `${forA} for the first side · ${forB} for their side`;
+
+  const money = oneSided
+    ? isA
+      ? `Your ${pot} ${sym} fee paid the ${c.reveals} jurors who voted. That's how the jury gets paid; there's no prize money.`
+      : `The ${pot} ${sym} fee was shared by the ${c.reveals} jurors who voted.`
+    : party
+      ? `Your fee and theirs (${pot} ${sym} together) paid the ${c.reveals} jurors who voted. That's how the jury gets paid; nobody wins money.`
+      : `Both fees (${pot} ${sym}) were shared by the ${c.reveals} jurors who voted.`;
+
+  // Each revealed juror's vote, in jury order; the chips pop in one by one.
+  const chips = (votes.data as { vote: number; revealed: boolean }[] | undefined)?.filter((v) => v.revealed).map((v) => v.vote) ?? [];
+  const chipLabel = (v: number) => (oneSided ? (v === 1 ? "✓" : "✗") : party ? (v === (isA ? 1 : 2) ? "You" : "Them") : v === 1 ? "1st" : "2nd");
+  const chipColor = (v: number) => (oneSided ? (v === 1 ? "bg-side-b" : "bg-side-a") : v === 1 ? "bg-side-a" : "bg-side-b");
+
   return (
-    <section id="verdict" className="tile scroll-mt-4 overflow-hidden bg-court text-white">
-      <div className="flex items-center gap-4 p-5">
-        <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-ink font-display text-3xl font-extrabold ${winner === "A" ? "bg-side-a" : "bg-side-b"}`}>
-          {oneSided ? (right ? "✓" : "✗") : winner === "A" ? "1" : "2"}
+    <section id="verdict" className="verdict-land tile relative scroll-mt-4 overflow-hidden bg-court text-white">
+      {(mine || (oneSided && isA && right)) && <Confetti />}
+      <div className="flex flex-col gap-3 p-5">
+        <p className="font-display text-sm font-extrabold text-verdict">⚖️ Results are in!</p>
+        <p className="font-display text-3xl font-extrabold leading-tight">{headline}</p>
+        <div className="flex flex-wrap items-center gap-1.5" aria-label={score}>
+          {chips.map((v, i) => (
+            <span
+              key={i}
+              className={`vote-chip flex h-10 min-w-10 items-center justify-center rounded-full border-2 border-ink px-2 text-sm font-extrabold text-white ${chipColor(v)}`}
+              style={{ animationDelay: `${0.4 + i * 0.25}s` }}
+            >
+              {chipLabel(v)}
+            </span>
+          ))}
         </div>
-        <div>
-          <p className="font-display text-2xl font-extrabold leading-tight">{headline}</p>
-          <p className="text-white/80">
-            The jury voted {oneSided ? `${c.votesA} right, ${c.votesB} wrong` : `${c.votesA}–${c.votesB}`}. {formatG(c.depositA + c.depositB)} {network.tokenSymbol} went to the {c.reveals} jurors who voted.
-          </p>
-        </div>
+        <p className="font-semibold">{score}</p>
+        <p className="text-sm text-white/80">{money}</p>
       </div>
-      <p className="border-t-2 border-white/15 bg-court-deep px-5 py-2 text-sm text-white/80">Random jury · decided on-chain</p>
+      <p className="border-t-2 border-white/15 bg-court-deep px-5 py-2 text-sm text-white/80">Random jury of verified people · decided on-chain</p>
     </section>
   );
 }
@@ -438,7 +498,7 @@ function CrowdSection(props: {
           with the verdict.
         </p>
       )}
-      {crowd && <p className="text-sm text-ink/60">{crowd.a + crowd.b} {crowd.a + crowd.b === 1 ? "vote" : "votes"}</p>}
+      {crowd && crowd.a + crowd.b > 0 && <p className="text-sm text-ink/60">{crowd.a + crowd.b} {crowd.a + crowd.b === 1 ? "vote" : "votes"}</p>}
       {called !== null && (
         <p className={`self-start rounded-full px-3 py-1 font-extrabold ${called ? "bg-verdict" : "bg-ink/10"}`}>
           {called ? "You called it ✓" : "The jury disagreed with you ✗"}

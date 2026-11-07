@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@goodsdks/citizen-sdk": "1.2.7",
     "@privy-io/node": "^0.38.0",
     "@privy-io/react-auth": "^3.51.3",
     "@privy-io/wagmi": "^4.0.20",

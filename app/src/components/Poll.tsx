@@ -39,6 +39,7 @@ export function Poll(props: {
   }
 
   const total = tally.a + tally.b;
+  if (total === 0) return <p className="text-sm text-ink/70">No one from the public voted on this one.</p>;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   const rows: [1 | 2, number][] = [
     [1, tally.a],

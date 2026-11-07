@@ -55,11 +55,15 @@ export function StatusPill({ status }: { status: string }) {
   );
 }
 
-export function SideCard({ side, label, text, highlight }: { side: "A" | "B"; label: string; text: ReactNode; highlight?: boolean }) {
+export function SideCard(props: { side: "A" | "B"; label: string; text: ReactNode; highlight?: boolean; badge?: string }) {
+  const { side, label, text, highlight, badge } = props;
   const color = side === "A" ? "bg-side-a" : "bg-side-b";
   return (
     <div className={`tile overflow-hidden ${highlight ? "ring-4 ring-verdict" : ""}`}>
-      <p className={`${color} border-b-[3px] border-ink px-4 py-2 font-display text-lg font-extrabold text-white`}>{label}</p>
+      <p className={`${color} flex items-center justify-between gap-2 border-b-[3px] border-ink px-4 py-2 font-display text-lg font-extrabold text-white`}>
+        {label}
+        {badge && <span className="rounded-full bg-verdict px-2.5 py-0.5 text-sm text-ink">{badge}</span>}
+      </p>
       <div className="whitespace-pre-wrap px-4 py-3 leading-relaxed">{text}</div>
     </div>
   );
