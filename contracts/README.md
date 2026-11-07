@@ -198,3 +198,5 @@ Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `D
 - Replace no-show jurors; drop jurors from the pool after repeated no-shows
 - Appeals / larger juries
 - Indexer or subgraph for case discovery
+- Past verdicts: a public, endless-scroll feed of past verdicts (Twitter-style), with "Start a case" prompts mixed in.
+  Only cases both parties agreed to make public; either side can have a case removed at any time

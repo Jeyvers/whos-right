@@ -8,10 +8,10 @@ import { ErrorNote, Hint, Page, Panel, Title } from "@/components/ui";
 import { useMe } from "@/hooks/useMe";
 import { useTx } from "@/hooks/useTx";
 import { testnetFaucetAbi } from "@/lib/abi/tokens";
-import { whosRightAbi } from "@/lib/abi/whosRight";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
+import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { SelfCustody } from "./SelfCustody";
 
 export function AccountHome() {
@@ -47,19 +47,7 @@ function AccountBody() {
 
   return (
     <div className="flex flex-col gap-5">
-      {me.owed > 0n && (
-        <Panel tone="yellow">
-          <p className="font-display text-2xl font-extrabold">{formatG(me.owed)} {sym} ready to withdraw</p>
-          <p>Juror pay and refunds wait here until you withdraw them to your wallet.</p>
-          <button
-            className="btn self-start bg-white"
-            disabled={Boolean(busy)}
-            onClick={() => run("withdraw", () => sendTx({ address: network.whosRight!, abi: whosRightAbi, functionName: "withdraw" }))}
-          >
-            {busy === "withdraw" ? "Withdrawing…" : "Withdraw"}
-          </button>
-        </Panel>
-      )}
+      <WithdrawPanel />
 
       {!me.verified && <VerifyPrompt />}
 

@@ -69,6 +69,7 @@ export function CaseView() {
 
       {winner && <Verdict c={c} winner={winner} isA={isA} isB={isB} />}
       {c.status === 6 && (
+        <section id="verdict" className="scroll-mt-4">
         <Panel>
           <p className="font-display text-xl font-extrabold">No verdict. Both sides refunded.</p>
           <p>{REFUND_REASON[c.refundReason]}</p>
@@ -76,6 +77,7 @@ export function CaseView() {
             <Link className="btn self-start" href="/account">Withdraw your refund</Link>
           )}
         </Panel>
+        </section>
       )}
 
       <div className="grid gap-4">
@@ -98,7 +100,7 @@ function Verdict({ c, winner, isA, isB }: { c: ChainCase; winner: "A" | "B"; isA
   const mine = (winner === "A" && isA) || (winner === "B" && isB);
   const headline = isA || isB ? (mine ? "You were right!" : "The jury sided with them.") : `Side ${winner} is right.`;
   return (
-    <section className="tile overflow-hidden bg-court text-white">
+    <section id="verdict" className="tile scroll-mt-4 overflow-hidden bg-court text-white">
       <div className="flex items-center gap-4 p-5">
         <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-ink font-display text-3xl font-extrabold ${winner === "A" ? "bg-side-a" : "bg-side-b"}`}>
           {winner}

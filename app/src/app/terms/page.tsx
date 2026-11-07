@@ -37,8 +37,8 @@ export default function Terms() {
 
       <h2>Public cases</h2>
       <p>
-        A case is shown publicly only if both people agreed to that before submitting. Either person can ask us to
-        remove a public case at any time from the case page.
+        Cases are public: when you sign up, you agree that anyone may read both sides of your cases and the
+        verdict. Either person can take a case off public view at any time from the case page.
       </p>
 
       <h2>No warranty</h2>

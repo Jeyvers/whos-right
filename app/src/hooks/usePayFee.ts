@@ -35,7 +35,7 @@ export type PayPlan = {
 /**
  * "Use today's claim" payment, in ONE tap:
  *   (testnet: verify) -> claim (only if needed) -> approve the exact fee (only if needed) -> the pay action.
- * Gas for the whole plan is topped up once, before the first step.
+ * Gas for the whole plan is topped up once, before the first step (falling back to per-step top-ups).
  * Never assumes one claim covers the fee: if balance + claim is still short, it stops with a clear message.
  */
 export function usePayFee() {
@@ -85,15 +85,21 @@ export function usePayFee() {
           actionStep,
         ];
         setStep("gas");
-        await ensureGas(steps);
+        // One top-up for the whole plan when possible. If it's refused (the first-time testnet plan can exceed
+        // the per-request cap, or gas prices spiked), each step below asks for its own gas instead; a refusal
+        // that also applies per step (daily limit, not verified) still surfaces there with its own message.
+        const upfront = await ensureGas(steps).then(
+          () => true,
+          () => false,
+        );
 
         if (p.verify && network.testnet) {
           setStep("verifying");
-          await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe", gasEnsured: true });
+          await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe", gasEnsured: upfront });
         }
         if (p.claim && network.testnet) {
           setStep("claiming");
-          await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet", gasEnsured: true });
+          await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet", gasEnsured: upfront });
         }
         if (p.approve) {
           setStep("approving");
@@ -102,7 +108,7 @@ export function usePayFee() {
             abi: erc20Abi,
             functionName: "approve",
             args: [network.whosRight!, fee], // exact fee, never unlimited
-            gasEnsured: true,
+            gasEnsured: upfront,
           });
         }
         setStep("paying");

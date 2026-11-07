@@ -19,7 +19,8 @@ import { db } from "./supabase";
  * for refunds, verdicts and draws, so paying for new jury requests can never use up the budget refunds need.
  */
 
-const LEASE_SECONDS = 55;
+// Longer than the longest possible run (route maxDuration is 60s), so the schedule and a poke can never overlap.
+const LEASE_SECONDS = 90;
 const MAX_TX_PER_RUN = 6;
 const MAX_CASES_SCANNED = 100;
 const MAX_POOL_CHECKED = 40;
@@ -63,6 +64,9 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
   let capped = false; // full daily cap reached: nothing more today
   let budgetLow = false; // past the reserve line: only refunds, verdicts and draws
   let error: string | undefined;
+  const failures: { action: string; caseId?: bigint; poolIndex?: bigint; error: string }[] = [];
+  const startedAt = new Date();
+  const shortError = (e: unknown) => (e instanceof Error ? (e as { shortMessage?: string }).shortMessage ?? e.message : String(e)).slice(0, 300);
 
   const { data: state } = await db().from("keeper_state").select("*").eq("network", network.name).single();
   let nextCaseId = BigInt(state?.next_case_id ?? 1);
@@ -143,17 +147,24 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
       const action = decide(c, jurors.length, ready, now);
       if (!action) continue;
       if (action === "requestJury" && budgetLow) continue;
-      let value = 0n;
-      if (action === "requestJury") {
-        const fee = await publicClient.readContract({
-          address: wr,
-          abi: whosRightAbi,
-          functionName: "randomnessFee",
-          args: [await publicClient.getGasPrice()],
-        });
-        value = fee === 0n ? 0n : (fee * 12n) / 10n; // excess is returned by the adapter
+      let sent: boolean;
+      try {
+        let value = 0n;
+        if (action === "requestJury") {
+          const fee = await publicClient.readContract({
+            address: wr,
+            abi: whosRightAbi,
+            functionName: "randomnessFee",
+            args: [await publicClient.getGasPrice()],
+          });
+          value = fee === 0n ? 0n : (fee * 12n) / 10n; // excess is returned by the adapter
+        }
+        sent = await send(action, [id], { caseId: id }, value);
+      } catch (e) {
+        // One failing case must not block the rest; it's logged and retried next run.
+        failures.push({ action, caseId: id, error: shortError(e) });
+        continue;
       }
-      const sent = await send(action, [id], { caseId: id }, value);
       if (!sent) {
         if (capped) break;
         continue; // jury request skipped to protect the refund reserve
@@ -185,7 +196,11 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
           args: [e.wallet],
         });
         if (root.toLowerCase() === e.root.toLowerCase()) continue;
-        await send("removeInvalidPoolEntry", [i], { poolIndex: i });
+        try {
+          await send("removeInvalidPoolEntry", [i], { poolIndex: i });
+        } catch (e) {
+          failures.push({ action: "removeInvalidPoolEntry", poolIndex: i, error: shortError(e) });
+        }
       }
     }
   } catch (e) {
@@ -202,9 +217,60 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
         last_error: error ?? null,
       })
       .eq("network", network.name);
+    await logRun({ trigger, startedAt, steps: steps.length, failures, capped, budgetLow, error, keeper: account.address });
   }
-  void trigger;
   return { ran: true, steps, capped: capped || budgetLow, error };
+}
+
+const LOW_BALANCE = () => parseEther(process.env.KEEPER_LOW_BALANCE_CELO ?? "0.25");
+const TOPUP_LOW_BALANCE = () => parseEther(process.env.TOPUP_LOW_BALANCE_CELO ?? "0.25");
+
+/** One row per run, plus one per failure. The Supabase watchdog reads these to alert. Never throws. */
+async function logRun(r: {
+  trigger: string;
+  startedAt: Date;
+  steps: number;
+  failures: { action: string; caseId?: bigint; poolIndex?: bigint; error: string }[];
+  capped: boolean;
+  budgetLow: boolean;
+  error?: string;
+  keeper: Address;
+}) {
+  try {
+    const topupPk = process.env.TOPUP_PRIVATE_KEY as Hex | undefined;
+    const topup = topupPk ? privateKeyToAccount(topupPk).address : undefined;
+    const [keeperBal, topupBal] = await Promise.all([
+      publicClient.getBalance({ address: r.keeper }).catch(() => null),
+      topup ? publicClient.getBalance({ address: topup }).catch(() => null) : Promise.resolve(null),
+    ]);
+    await db().from("keeper_runs").insert({
+      network: network.name,
+      trigger: r.trigger,
+      started_at: r.startedAt.toISOString(),
+      finished_at: new Date().toISOString(),
+      outcome: r.error ? "error" : r.capped ? "capped" : r.budgetLow ? "budget_low" : "ok",
+      txs_sent: r.steps,
+      failures: r.failures.length,
+      error: r.error ?? null,
+      keeper_balance_wei: keeperBal?.toString() ?? null,
+      topup_balance_wei: topupBal?.toString() ?? null,
+      keeper_balance_low: keeperBal !== null ? keeperBal < LOW_BALANCE() : null,
+      topup_balance_low: topupBal !== null ? topupBal < TOPUP_LOW_BALANCE() : null,
+    });
+    if (r.failures.length) {
+      await db().from("keeper_failures").insert(
+        r.failures.map((f) => ({
+          network: network.name,
+          action: f.action,
+          case_id: f.caseId?.toString() ?? null,
+          pool_index: f.poolIndex?.toString() ?? null,
+          error: f.error,
+        })),
+      );
+    }
+  } catch {
+    // logging must never break the keeper
+  }
 }
 
 export type KeeperStatus = { configured: boolean; capped: boolean; cappedUntil: string | null; lastRunAt: string | null; healthy: boolean };

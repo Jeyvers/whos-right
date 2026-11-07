@@ -45,33 +45,3 @@ export function SideEditor(props: {
     </div>
   );
 }
-
-export function PublicConsent({
-  checked,
-  onChange,
-  attempted = false,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  attempted?: boolean;
-}) {
-  const missing = attempted && !checked;
-  return (
-    <div className="flex flex-col gap-1">
-      <label className={`flex items-start gap-3 rounded-2xl border-2 bg-white p-3 ${missing ? "border-side-a" : "border-ink/20"}`}>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="mt-1 h-5 w-5 shrink-0 accent-court"
-        />
-        <span className="text-sm">
-          <strong>I understand this case may be shown publicly</strong> once both sides have agreed to it, so anyone can
-          read both sides and the verdict. Either side can ask for it to be removed at any time.{" "}
-          <a href="/privacy" target="_blank" className="underline">Privacy</a>
-        </span>
-      </label>
-      {missing && <p role="alert" className="text-sm font-semibold text-side-a">Tick the box to continue.</p>}
-    </div>
-  );
-}

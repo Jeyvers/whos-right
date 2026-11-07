@@ -7,7 +7,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { useReadContracts } from "wagmi";
 import { Gate } from "@/components/Gate";
 import { PayButton } from "@/components/PayButton";
-import { PublicConsent, SideEditor } from "@/components/SideEditor";
+import { SideEditor } from "@/components/SideEditor";
 import { ErrorNote, Page, Panel, Title } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { usePayFee } from "@/hooks/usePayFee";
@@ -38,7 +38,6 @@ function StartCaseForm() {
   const { pay, plan, step, error, setError, me } = usePayFee();
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState<SpeedValue>(SPEED.Standard);
-  const [agree, setAgree] = useState(false);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
   const [attempted, setAttempted] = useState(false);
 
@@ -57,7 +56,7 @@ function StartCaseForm() {
 
   async function submit() {
     if (fee === undefined) return;
-    if (!textOk || !agree) {
+    if (!textOk) {
       setAttempted(true);
       return;
     }
@@ -71,7 +70,7 @@ function StartCaseForm() {
               text: text.trim(),
               ...(await authFetch<{ sideId: string; contentHash: Hex }>("/api/sides", {
                 method: "POST",
-                body: JSON.stringify({ text, publicConsent: agree }),
+                body: JSON.stringify({ text }),
               })),
             };
       setSaved(side);
@@ -87,7 +86,6 @@ function StartCaseForm() {
           abi: whosRightAbi,
           functionName: "openCase",
           args: [speed, side.contentHash, inviteSigner],
-          gasEnsured: true,
         });
         const [opened] = parseEventLogs({ abi: whosRightAbi, eventName: "CaseOpened", logs: receipt.logs });
         const caseId = opened.args.caseId;
@@ -136,7 +134,6 @@ function StartCaseForm() {
         <p className="text-sm text-ink/65">The other person pays the same. If no verdict is reached, you both get it back.</p>
       </div>
 
-      <PublicConsent checked={agree} onChange={setAgree} attempted={attempted} />
 
       <Panel>
         <PayButton

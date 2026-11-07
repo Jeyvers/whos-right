@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Nunito } from "next/font/google";
 import Link from "next/link";
 import { connection } from "next/server";
+import { AgreementGate } from "@/components/AgreementGate";
 import { HeaderNav } from "@/components/HeaderNav";
 import { Scales } from "@/components/Scales";
 import { Providers } from "./providers";
@@ -23,9 +24,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <header className="bg-court text-white">
             <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-              <Link href="/" className="flex items-center gap-2 font-display text-xl font-extrabold">
+              <Link href="/" aria-label="Who's Right? home" className="flex items-center gap-2 font-display text-xl font-extrabold">
                 <Scales className="h-9 w-9 rounded-full bg-white p-0.5" />
-                Who&apos;s Right?
+                <span className="hidden sm:inline">Who&apos;s Right?</span>
               </Link>
               <div className="flex items-center gap-3">
                 <HeaderNav />
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/privacy" className="underline-offset-4 hover:underline">Privacy</Link>
             </div>
           </footer>
+          <AgreementGate />
         </Providers>
       </body>
     </html>

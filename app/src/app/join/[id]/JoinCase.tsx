@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 import { readContract } from "wagmi/actions";
 import { Gate } from "@/components/Gate";
 import { PayButton } from "@/components/PayButton";
-import { PublicConsent, SideEditor } from "@/components/SideEditor";
+import { SideEditor } from "@/components/SideEditor";
 import { ErrorNote, Hint, Page, Panel, SideCard, Title } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useCase, useCaseText } from "@/hooks/useCase";
@@ -101,7 +101,6 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   const sendTx = useTx();
   const { pay, plan, step, error, setError, me } = usePayFee();
   const [text, setText] = useState("");
-  const [agree, setAgree] = useState(false);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
   const [attempted, setAttempted] = useState(false);
   const wr = network.whosRight!;
@@ -111,7 +110,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   }
 
   async function submit() {
-    if (checkSideText(text).errors.length > 0 || !agree) {
+    if (checkSideText(text).errors.length > 0) {
       setAttempted(true);
       return;
     }
@@ -124,7 +123,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
               text: text.trim(),
               ...(await authFetch<{ sideId: string; contentHash: Hex }>("/api/sides", {
                 method: "POST",
-                body: JSON.stringify({ text, publicConsent: agree }),
+                body: JSON.stringify({ text }),
               })),
             };
       setSaved(side);
@@ -142,7 +141,6 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
           abi: whosRightAbi,
           functionName: "joinCase",
           args: [caseId, side.contentHash, c.speed, c.fee, signature],
-          gasEnsured: true,
         });
         await authFetch(`/api/cases/${caseId}/link`, { method: "POST", body: JSON.stringify({ sideId: side.sideId }) });
         router.push(`/c/${caseId}`);
@@ -155,7 +153,6 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   return (
     <div className="flex flex-col gap-6">
       <SideEditor label="Your side of the story" value={text} onChange={setText} attempted={attempted} />
-      <PublicConsent checked={agree} onChange={setAgree} attempted={attempted} />
       <Panel>
         <PayButton
           fee={c.fee}

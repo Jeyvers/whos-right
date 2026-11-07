@@ -25,8 +25,8 @@ export default function Privacy() {
       <h2>Who sees your case</h2>
       <ul>
         <li>The other person and the drawn jurors always see the case text.</li>
-        <li>Everyone else sees it only if both people agreed to make it public before submitting.</li>
-        <li>You can ask for a public case to be removed at any time from the case page.</li>
+        <li>Everyone else can see it too: cases are public, which you agree to once when you sign up.</li>
+        <li>Either person can take a case off public view at any time from the case page.</li>
       </ul>
 
       <h2>Verification</h2>

@@ -16,7 +16,7 @@ import { db } from "./supabase";
  * keyed by their Privy user id.
  */
 const cfg = () => ({
-  maxPerTx: parseEther(process.env.TOPUP_MAX_PER_TX_CELO ?? "0.05"),
+  maxPerTx: parseEther(process.env.TOPUP_MAX_PER_TX_CELO ?? "0.08"),
   maxWallet: parseEther(process.env.TOPUP_MAX_PER_WALLET_DAY_CELO ?? "0.15"),
   maxPerson: parseEther(process.env.TOPUP_MAX_PER_PERSON_DAY_CELO ?? "0.15"),
   maxGlobal: parseEther(process.env.TOPUP_DAILY_CAP_CELO ?? "1"),

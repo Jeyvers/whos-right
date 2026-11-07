@@ -7,6 +7,9 @@ import { authenticate } from "@/lib/server/privy";
 import { db } from "@/lib/server/supabase";
 import { bad, parseCaseId } from "@/lib/server/http";
 
+// Up to ~15s of retries while lagging RPC nodes catch up (see below).
+export const maxDuration = 30;
+
 /** After openCase/joinCase confirms, ties the saved side to the on-chain case. Verified against the chain. */
 export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/link">) {
   const caseId = parseCaseId((await ctx.params).id);
@@ -24,11 +27,22 @@ export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/
     .maybeSingle();
   if (!side || side.privy_user_id !== user.userId) return bad("Side not found.", 404);
 
-  const c = await readCase(caseId);
   const mine = (addr: string) => user.wallets.some((w) => sameAddress(w, addr));
+  const roleIn = (c: Awaited<ReturnType<typeof readCase>>): "A" | "B" | null =>
+    sameAddress(c.contentA, side.content_hash) && mine(c.partyA)
+      ? "A"
+      : sameAddress(c.contentB, side.content_hash) && mine(c.partyB)
+        ? "B"
+        : null;
+
+  // The browser calls this as soon as ITS node confirms the transaction. Ours is a fallback over several public
+  // RPCs that can trail by a few blocks (5 seen on Celo Sepolia), and a behind node returns an empty case or one
+  // not yet joined. So a miss is retried for a while before it counts as a real mismatch.
   let role: "A" | "B" | null = null;
-  if (sameAddress(c.contentA, side.content_hash) && mine(c.partyA)) role = "A";
-  else if (sameAddress(c.contentB, side.content_hash) && mine(c.partyB)) role = "B";
+  for (let attempt = 0; attempt < 10 && !role; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+    role = roleIn(await readCase(caseId));
+  }
   if (!role) return bad("That side doesn't match this case on-chain.", 409);
 
   if (side.case_id === null) {
