@@ -6,20 +6,12 @@ import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import type { GasStep } from "@/lib/gasSteps";
 import { network } from "@/lib/network";
+import { alreadyClaimedMessage, claimable, shortMessage } from "@/lib/claim";
+import { useDailyClaim } from "./useDailyClaim";
 import { useEnsureGas } from "./useEnsureGas";
 import { useMe } from "./useMe";
 import { useTx } from "./useTx";
 
-/** tG$ the testnet faucet gives per call; the stand-in for "today's claim" on Celo Sepolia. */
-const TESTNET_FAUCET_AMOUNT = 10_000n * 10n ** 18n;
-
-/**
- * Today's claimable G$. Testnet: the faucet stands in for the daily claim.
- * Mainnet: wired to GoodDollar's UBI claim in a later phase; until then 0 (never assumed).
- */
-function todaysClaim(): bigint {
-  return network.testnet ? TESTNET_FAUCET_AMOUNT : 0n;
-}
 
 export type PayStep = "idle" | "preparing" | "gas" | "verifying" | "claiming" | "approving" | "paying" | "done";
 
@@ -28,6 +20,8 @@ export type PayPlan = {
   claim: boolean;
   approve: boolean;
   shortfall: bigint;
+  /** Why paying is blocked, in plain words (not enough even with today's claim, or claim already used). */
+  blocked?: string;
   /** Plain list of what one tap will do, for the summary shown before paying. */
   summary: string[];
 };
@@ -40,6 +34,7 @@ export type PayPlan = {
  */
 export function usePayFee() {
   const me = useMe();
+  const { state: claimSt, claim: claimToday } = useDailyClaim();
   const sendTx = useTx();
   const ensureGas = useEnsureGas();
   const [step, setStep] = useState<PayStep>("idle");
@@ -49,19 +44,28 @@ export function usePayFee() {
   const plan = useCallback(
     (fee: bigint, actionLabel: string): PayPlan => {
       const verify = !me.verified && Boolean(network.testnet);
-      const claim = me.gBalance < fee;
-      const available = me.gBalance + (claim ? todaysClaim() : 0n);
+      const short = me.gBalance < fee;
+      const todays = claimable(claimSt);
+      const claim = short && todays > 0n;
+      const available = me.gBalance + (claim ? todays : 0n);
       const shortfall = available >= fee ? 0n : fee - available;
       const approve = me.allowance < fee;
+      // Can't pay even with today's claim: say exactly why and how much more is needed.
+      const blocked =
+        shortfall === 0n
+          ? undefined
+          : claimSt.kind === "already_claimed"
+            ? `${alreadyClaimedMessage(claimSt)} ${shortMessage({ fee, balance: me.gBalance, state: claimSt, sym })}`
+            : shortMessage({ fee, balance: me.gBalance, state: claimSt, sym });
       const summary = [
         ...(verify ? ["Verify you (test)"] : []),
-        ...(claim ? [network.testnet ? "Get free test G$" : "Claim today's G$"] : []),
+        ...(claim ? [network.testnet ? "Get free test G$" : `Claim today's ${formatG(todays)} G$`] : []),
         ...(approve ? [`Approve exactly ${formatG(fee)} ${sym}`] : []),
         actionLabel,
       ];
-      return { verify, claim, approve, shortfall, summary };
+      return { verify, claim, approve, shortfall, blocked, summary };
     },
-    [me.verified, me.gBalance, me.allowance, sym],
+    [me.verified, me.gBalance, me.allowance, sym, claimSt],
   );
 
   const pay = useCallback(
@@ -69,18 +73,12 @@ export function usePayFee() {
       setError(undefined);
       try {
         const p = plan(fee, "");
-        if (!me.verified && !network.testnet) throw new Error("Verify you're a real person first.");
-        if (p.shortfall > 0n) {
-          throw new Error(
-            `You need ${formatG(fee)} ${sym}. You have ${formatG(me.gBalance)} ${sym}` +
-              (todaysClaim() > 0n ? ` plus ${formatG(todaysClaim())} ${sym} from today's claim.` : ", and no claim left today.") +
-              " Pick Standard or come back after your next claim.",
-          );
-        }
+        if (!me.verified && !network.testnet) throw new Error("Verify you're a real person with GoodDollar first.");
+        if (p.shortfall > 0n) throw new Error(p.blocked ?? `You need ${formatG(fee)} ${sym}.`);
 
         const steps: GasStep[] = [
           ...(p.verify ? (["verifyMe"] as const) : []),
-          ...(p.claim && network.testnet ? (["faucet"] as const) : []),
+          ...(p.claim ? (network.testnet ? (["faucet"] as const) : (["claim"] as const)) : []),
           ...(p.approve ? (["approve"] as const) : []),
           actionStep,
         ];
@@ -97,9 +95,13 @@ export function usePayFee() {
           setStep("verifying");
           await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe", gasEnsured: upfront });
         }
-        if (p.claim && network.testnet) {
+        if (p.claim) {
           setStep("claiming");
-          await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet", gasEnsured: upfront });
+          if (network.testnet) {
+            await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet", gasEnsured: upfront });
+          } else {
+            await claimToday(); // GoodDollar's daily UBI claim, then straight on to paying
+          }
         }
         if (p.approve) {
           setStep("approving");
@@ -123,7 +125,7 @@ export function usePayFee() {
         return false;
       }
     },
-    [me, sendTx, ensureGas, plan, sym],
+    [me, sendTx, ensureGas, plan, claimToday, sym],
   );
 
   /** Call the instant Pay is tapped, so the button reacts before any network work starts. */

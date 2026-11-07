@@ -13,6 +13,7 @@ import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
 import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { SelfCustody } from "./SelfCustody";
+import { ClaimPanel } from "@/components/ClaimPanel";
 import { Spinner } from "@/components/Loading";
 
 export function AccountHome() {
@@ -80,12 +81,13 @@ function AccountBody() {
             >
               {busy === "faucet" ? <><Spinner /> Getting test G$…</> : "Get free test G$"}
             </button>
-            <Hint>Test network: this stands in for the daily GoodDollar claim.</Hint>
+            <Hint>Test network: this stands in for the daily GoodDollar claim (free, as often as you need).</Hint>
           </div>
         )}
         <ErrorNote>{error}</ErrorNote>
       </Panel>
 
+      <ClaimPanel />
       <SelfCustody />
 
       <Panel>

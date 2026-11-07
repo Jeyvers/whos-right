@@ -27,6 +27,8 @@ export type NetworkConfig = {
   goodDollar: Address;
   /** The Identity contract the contract checks. */
   identity: Address;
+  /** GoodDollar's UBIScheme (daily claim). Mainnet only; on testnet the tG$ faucet stands in. */
+  ubiScheme?: Address;
   /** RPC endpoints, tried in order (public RPCs go down; never rely on just one). */
   rpcUrls: string[];
   /** Display symbol for the fee token. */
@@ -60,6 +62,7 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     whosRight: undefined, // set after the approved mainnet deploy (Phase 6)
     goodDollar: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
     identity: "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42",
+    ubiScheme: "0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1", // GoodDollar UBISchemeV2 on Celo (citizen-sdk chainConfigs)
     rpcUrls: ["https://forno.celo.org", "https://celo.drpc.org", "https://rpc.ankr.com/celo"],
     tokenSymbol: "G$",
   },

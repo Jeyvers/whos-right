@@ -7,6 +7,7 @@ import { friendlyError } from "@/lib/errors";
 import { network } from "@/lib/network";
 import { useMe } from "@/hooks/useMe";
 import { useTx } from "@/hooks/useTx";
+import { useGoodDollarVerify } from "@/hooks/useDailyClaim";
 import { ErrorNote, Hint, Panel } from "./ui";
 import { Loading } from "./Loading";
 import { Spinner } from "@/components/Loading";
@@ -37,6 +38,7 @@ export function Gate({ children, needVerified = true }: { children: ReactNode; n
 export function VerifyPrompt() {
   const sendTx = useTx();
   const me = useMe();
+  const verifyWithGoodDollar = useGoodDollarVerify();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const testnet = network.testnet;
@@ -68,7 +70,27 @@ export function VerifyPrompt() {
           <Hint>Test network: this button stands in for GoodDollar face verification.</Hint>
         </>
       ) : (
-        <Hint>GoodDollar face verification opens here at launch.</Hint>
+        <>
+          <button
+            className="btn self-start bg-white"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(undefined);
+              try {
+                await verifyWithGoodDollar(window.location.href); // comes back here when done
+              } catch (e) {
+                setError(friendlyError(e));
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Opening GoodDollar…" : "Verify with GoodDollar"}
+          </button>
+          <Hint>
+            A quick face scan by GoodDollar, done once. It proves you&apos;re a real, unique person; we never see your face.
+          </Hint>
+        </>
       )}
       <ErrorNote>{error}</ErrorNote>
     </Panel>

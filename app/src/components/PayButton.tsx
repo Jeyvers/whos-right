@@ -38,10 +38,13 @@ export function PayButton(props: {
       {fee !== undefined && (
         <Hint>
           You have {formatG(balance)} {sym}.
-          {short && ` You're ${formatG(plan!.shortfall)} ${sym} short, even with today's claim.`}
+
           {!network.testnet && !short && " Your wallet asks you to confirm."}
           {" "}Network fees are covered for you, up to a daily limit.
         </Hint>
+      )}
+      {short && plan?.blocked && (
+        <p role="status" className="rounded-xl border-2 border-side-a bg-side-a/10 p-3 text-sm font-semibold">{plan.blocked}</p>
       )}
       <button className="btn" disabled={disabled || busy || Boolean(short) || fee === undefined} onClick={onPay}>
         {busy ? <><Spinner /> {PAY_STEP_LABEL[step]}</> : fee !== undefined ? `${label} · ${formatG(fee)} ${sym}` : label}

@@ -7,6 +7,7 @@ export const GAS_BUDGET = {
   verifyMe: 60_000n, // testnet stand-in only (measured 47k)
   faucet: 70_000n, // testnet stand-in only (51k)
   approve: 60_000n, // 47k
+  claim: 300_000n, // GoodDollar daily UBI claim (mainnet)
   transfer: 70_000n, // sending G$ anywhere, always confirmed by the user (52k)
   openCase: 340_000n, // 258k
   joinCase: 360_000n,
