@@ -21,7 +21,7 @@ function todaysClaim(): bigint {
   return network.testnet ? TESTNET_FAUCET_AMOUNT : 0n;
 }
 
-export type PayStep = "idle" | "gas" | "verifying" | "claiming" | "approving" | "paying" | "done";
+export type PayStep = "idle" | "preparing" | "gas" | "verifying" | "claiming" | "approving" | "paying" | "done";
 
 export type PayPlan = {
   verify: boolean;
@@ -126,11 +126,23 @@ export function usePayFee() {
     [me, sendTx, ensureGas, plan, sym],
   );
 
-  return { pay, plan, step, error, setError, me };
+  /** Call the instant Pay is tapped, so the button reacts before any network work starts. */
+  const begin = useCallback(() => {
+    setError(undefined);
+    setStep("preparing");
+  }, []);
+  /** Back to idle with an error, for failures before `pay` runs (e.g. saving the side). */
+  const fail = useCallback((message: string) => {
+    setStep("idle");
+    setError(message);
+  }, []);
+
+  return { pay, plan, step, error, setError, begin, fail, me };
 }
 
 export const PAY_STEP_LABEL: Record<PayStep, string> = {
   idle: "",
+  preparing: "Saving your side…",
   gas: "Getting ready…",
   verifying: "Verifying you…",
   claiming: network.testnet ? "Getting test G$…" : "Claiming today's G$…",

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { Gate } from "@/components/Gate";
-import { Hint, Page, Title } from "@/components/ui";
+import { useQuery } from "@tanstack/react-query";
+import { Hint } from "@/components/ui";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { useNow } from "@/hooks/useNow";
 import { whosRightAbi } from "@/lib/abi/whosRight";
@@ -11,16 +13,45 @@ import { SPEED, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { formatG } from "@/lib/format";
 import { myCredit, myRole, myStage, STAGE_LABEL, type MyRole, type MyStage } from "@/lib/myCases";
 import { network } from "@/lib/network";
+import { Loading } from "@/components/Loading";
 
+/** "My cases" tab: your "called it" record, money waiting, and every case you opened, joined or judged. */
 export function MyCases() {
   return (
-    <Page>
-      <Title sub="Every case you opened, joined or judged.">My cases</Title>
-      <Gate needVerified={false}>
-        <WithdrawPanel />
-        <CaseList />
-      </Gate>
-    </Page>
+    <Gate needVerified={false}>
+      <CalledItSummary />
+      <WithdrawPanel />
+      <CaseList />
+    </Gate>
+  );
+}
+
+type Calls = { decided: number; right: number; pending: number; streak: number };
+
+/** How often your crowd votes matched the official jury. */
+function CalledItSummary() {
+  const authFetch = useAuthFetch();
+  const { data } = useQuery({ queryKey: ["my-calls"], queryFn: () => authFetch<Calls>("/api/me/calls"), refetchInterval: 60_000 });
+  if (!data || data.decided + data.pending === 0) return null;
+  const pct = data.decided ? Math.round((data.right / data.decided) * 100) : 0;
+  return (
+    <section className="tile grid grid-cols-3 overflow-hidden bg-ink text-center text-white">
+      <div className="border-r-2 border-white/15 p-3">
+        <p className="font-display text-3xl font-extrabold text-verdict">
+          {data.right}
+          <span className="text-lg text-white/60">/{data.decided}</span>
+        </p>
+        <p className="text-sm">You called it{data.decided ? ` (${pct}%)` : ""}</p>
+      </div>
+      <div className="border-r-2 border-white/15 p-3">
+        <p className="font-display text-3xl font-extrabold text-side-b">{data.streak}</p>
+        <p className="text-sm">Streak</p>
+      </div>
+      <div className="p-3">
+        <p className="font-display text-3xl font-extrabold">{data.pending}</p>
+        <p className="text-sm">Waiting on a verdict</p>
+      </div>
+    </section>
   );
 }
 
@@ -57,7 +88,7 @@ function CaseList() {
     query: { enabled: ids.length > 0 && Boolean(address), refetchInterval: 20_000 },
   });
 
-  if (count.isLoading || (ids.length > 0 && reads.isLoading)) return <Hint>Finding your cases…</Hint>;
+  if (count.isLoading || (ids.length > 0 && reads.isLoading)) return <Loading label="Finding your cases…" />;
   if (reads.isError) return <Hint>Couldn&apos;t load your cases. Refresh to try again.</Hint>;
 
   const rows = ids.flatMap((id, i) => {

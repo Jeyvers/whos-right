@@ -13,6 +13,7 @@ import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
 import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { SelfCustody } from "./SelfCustody";
+import { Spinner } from "@/components/Loading";
 
 export function AccountHome() {
   return (
@@ -77,7 +78,7 @@ function AccountBody() {
               disabled={Boolean(busy)}
               onClick={() => run("faucet", () => sendTx({ address: network.testnet!.faucetToken, abi: testnetFaucetAbi, functionName: "faucet" }))}
             >
-              {busy === "faucet" ? "Getting test G$…" : "Get free test G$"}
+              {busy === "faucet" ? <><Spinner /> Getting test G$…</> : "Get free test G$"}
             </button>
             <Hint>Test network: this stands in for the daily GoodDollar claim.</Hint>
           </div>

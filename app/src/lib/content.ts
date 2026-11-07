@@ -8,5 +8,5 @@ export function contentHash(salt: Hex, text: string): Hex {
   return keccak256(encodeAbiParameters([{ type: "bytes32" }, { type: "string" }], [salt, text]));
 }
 
-export const MAX_SIDE_LENGTH = 1000;
+export const MAX_SIDE_LENGTH = 500; // short enough to read at a glance in the feed
 export const MIN_SIDE_LENGTH = 20;

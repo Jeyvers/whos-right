@@ -8,6 +8,7 @@ import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
 import { ErrorNote, Panel } from "./ui";
+import { Spinner } from "@/components/Loading";
 
 /** Refunds and juror pay waiting in the contract. Renders nothing when there's none. */
 export function WithdrawPanel() {
@@ -39,7 +40,7 @@ export function WithdrawPanel() {
           }
         }}
       >
-        {busy ? "Withdrawing…" : "Withdraw"}
+        {busy ? <><Spinner /> Withdrawing…</> : "Withdraw"}
       </button>
       <ErrorNote>{error}</ErrorNote>
     </Panel>

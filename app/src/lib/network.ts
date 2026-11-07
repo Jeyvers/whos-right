@@ -77,7 +77,13 @@ function resolveNetwork(): NetworkConfig {
 
 export const network = resolveNetwork();
 
-/** viem transport that fails over between the network's RPCs. */
+/**
+ * viem transport across the network's public RPCs. `rank` keeps re-measuring them and prefers the fastest, most
+ * reliable one, so a slow or flaky node (forno has had outages) doesn't stall every call.
+ */
 export function rpcTransport() {
-  return fallback(network.rpcUrls.map((url) => http(url, { retryCount: 1, timeout: 10_000 })));
+  return fallback(
+    network.rpcUrls.map((url) => http(url, { retryCount: 1, timeout: 10_000 })),
+    { rank: { interval: 30_000, sampleCount: 5, timeout: 4_000 } },
+  );
 }

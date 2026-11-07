@@ -11,6 +11,7 @@ import { whosRightAbi } from "@/lib/abi/whosRight";
 import { VOTE, timeLeft, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { network } from "@/lib/network";
+import { Spinner } from "@/components/Loading";
 import {
   commitmentOf,
   loadLocalSalt,
@@ -131,7 +132,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
       {revealNow && (
         <>
           <p>Everyone has voted. Reveal yours so it counts and you get paid.</p>
-          <button className="btn self-start bg-white" disabled={busy} onClick={reveal}>{busy ? "Revealing…" : "Reveal my vote"}</button>
+          <button className="btn self-start bg-white" disabled={busy} onClick={reveal}>{busy ? <><Spinner /> Revealing…</> : "Reveal my vote"}</button>
           <Hint>{timeLeft(c.revealDeadline, now)} left to reveal. Jurors who don&apos;t reveal aren&apos;t paid.</Hint>
         </>
       )}

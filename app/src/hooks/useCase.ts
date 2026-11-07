@@ -14,6 +14,9 @@ export type CaseText = {
   removalRequested: boolean;
   sideA: string | null;
   sideB: string | null;
+  crowd: { a: number; b: number } | null; // hidden until the official verdict
+  crowdTotal: number;
+  myCrowdVote: number | null;
 };
 
 /** On-chain case + jurors + my vote, refreshed every 8s. */

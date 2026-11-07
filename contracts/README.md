@@ -200,3 +200,6 @@ Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `D
 - Indexer or subgraph for case discovery
 - Past verdicts: a public, endless-scroll feed of past verdicts (Twitter-style), with "Start a case" prompts mixed in.
   Only cases both parties agreed to make public; either side can have a case removed at any time
+- Voice input for sides: record a side, convert it to text, and use AI to tidy it into a short case without changing
+  its meaning or making it more persuasive. Then run the privacy filters and let the person edit and confirm before
+  paying. The audio is deleted after transcription; only the final text is stored

@@ -4,6 +4,7 @@ import { useReadContracts } from "wagmi";
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
+import { Loading } from "./Loading";
 
 const STANDARD = 0;
 const FAST = 1;
@@ -42,7 +43,7 @@ export function ContractStatus() {
   });
 
   if (!address) return <p className="tile p-4">Not open on {network.label} yet.</p>;
-  if (isLoading) return <p className="tile p-4 text-ink/60">Checking the courtroom…</p>;
+  if (isLoading) return <div className="tile p-4"><Loading label="Checking the courtroom…" /></div>;
   if (isError || !data) {
     return <p className="tile border-side-a p-4">Couldn&apos;t reach {network.label}. Refresh to try again.</p>;
   }

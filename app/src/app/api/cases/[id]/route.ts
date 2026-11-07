@@ -6,6 +6,7 @@ import { readCase, readJurors } from "@/lib/server/chain";
 import { authenticate } from "@/lib/server/privy";
 import { db } from "@/lib/server/supabase";
 import { bad, parseCaseId } from "@/lib/server/http";
+import { verifiedPerson } from "@/lib/server/person";
 
 type Access = "party" | "juror" | "invite" | "public" | "none";
 
@@ -22,7 +23,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
   const c = await readCase(caseId);
   if (c.status === 0) return bad("Case not found.", 404);
 
-  const [{ data: sides }, { data: flags }] = await Promise.all([
+  const [{ data: sides }, { data: flags }, { data: crowdRows }] = await Promise.all([
     db()
       .from("sides")
       .select("body, salt, content_hash, public_consent, role")
@@ -34,6 +35,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
       .eq("network", network.name)
       .eq("case_id", caseId.toString())
       .maybeSingle(),
+    db().from("crowd_votes").select("person, vote").eq("network", network.name).eq("case_id", caseId.toString()),
   ]);
   const sideA = sides?.find((s) => s.role === "A" && sameAddress(s.content_hash, c.contentA));
   const sideB = sides?.find((s) => s.role === "B" && sameAddress(s.content_hash, c.contentB));
@@ -43,6 +45,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
 
   let access: Access = "none";
   const user = await authenticate(request);
+  const person = user ? (await verifiedPerson(user.wallets))?.person ?? null : null;
   if (user) {
     const mine = (addr: string) => addr !== ZERO_ADDRESS && user.wallets.some((w) => sameAddress(w, addr));
     if (mine(c.partyA) || mine(c.partyB)) access = "party";
@@ -67,5 +70,11 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
     removalRequested,
     sideA: canSeeA && sideA ? sideA.body : null,
     sideB: canSeeB && sideB ? sideB.body : null,
+    // Crowd votes: tally hidden until the official verdict so it can't sway the jury.
+    crowd: c.status === 5 || c.status === 6
+      ? { a: crowdRows?.filter((v) => v.vote === 1).length ?? 0, b: crowdRows?.filter((v) => v.vote === 2).length ?? 0 }
+      : null,
+    crowdTotal: crowdRows?.length ?? 0,
+    myCrowdVote: person ? crowdRows?.find((v) => v.person === person)?.vote ?? null : null,
   });
 }

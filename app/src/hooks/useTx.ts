@@ -60,7 +60,18 @@ export function useTx() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         hash = await writeContractAsync({ ...(call as any), chainId: network.chain.id });
       }
-      const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: network.chain.id });
+      let receipt: TransactionReceipt;
+      try {
+        // Celo confirms in seconds; never leave someone staring at a spinner for minutes.
+        receipt = await waitForTransactionReceipt(wagmiConfig, {
+          hash,
+          chainId: network.chain.id,
+          pollingInterval: 1_500,
+          timeout: 90_000,
+        });
+      } catch {
+        throw new Error("Sent, but it's taking a while to confirm. Refresh in a minute to see if it went through.");
+      }
       if (receipt.status !== "success") throw new Error("The transaction failed on-chain.");
       return receipt;
     },

@@ -9,7 +9,7 @@ import { readContract } from "wagmi/actions";
 import { Gate } from "@/components/Gate";
 import { PayButton } from "@/components/PayButton";
 import { SideEditor } from "@/components/SideEditor";
-import { ErrorNote, Hint, Page, Panel, SideCard, Title } from "@/components/ui";
+import { ErrorNote, Page, Panel, SideCard, Title } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useCase, useCaseText } from "@/hooks/useCase";
 import { useNow } from "@/hooks/useNow";
@@ -23,6 +23,7 @@ import { inviteViewMessage } from "@/lib/inviteView";
 import { network } from "@/lib/network";
 import { checkSideText } from "@/lib/textRules";
 import { wagmiConfig } from "@/lib/wagmi";
+import { Loading } from "@/components/Loading";
 
 /** Reads the invite key from the link's #k=... (never sent to our server). */
 function useInviteKey(): Hex | null | undefined {
@@ -48,7 +49,7 @@ export function JoinCase() {
   }, [pk, caseId]);
   const text = useCaseText(caseId, { inviteSig: previewSig, enabled: Boolean(previewSig) });
 
-  if (pk === undefined || isLoading) return <Page><Hint>Opening invite…</Hint></Page>;
+  if (pk === undefined || isLoading) return <Page><Loading label="Opening your invite…" /></Page>;
   if (!caseId || !pk || !c || c.status === 0) {
     return <Page><Title sub="Ask the person who invited you to send the full link again.">This invite link is broken</Title></Page>;
   }
@@ -70,7 +71,7 @@ export function JoinCase() {
   return (
     <Page>
       <Title sub="Someone thinks they're right. Read their side, then tell yours.">You&apos;ve been called out!</Title>
-      <SideCard side="A" label="Their side" text={text.data?.sideA ?? <span className="text-ink/50">Loading their side…</span>} />
+      <SideCard side="A" label="Their side" text={text.data?.sideA ?? <Loading size="sm" label="Loading their side…" />} />
       <Terms c={c} deadline={timeLeft(c.joinDeadline, now)} />
       <Gate>
         <JoinForm caseId={caseId} c={c} pk={pk} />
@@ -99,7 +100,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   const { address } = useAccount();
   const authFetch = useAuthFetch();
   const sendTx = useTx();
-  const { pay, plan, step, error, setError, me } = usePayFee();
+  const { pay, plan, step, error, begin, fail, me } = usePayFee();
   const [text, setText] = useState("");
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
   const [attempted, setAttempted] = useState(false);
@@ -114,7 +115,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
       setAttempted(true);
       return;
     }
-    setError(undefined);
+    begin(); // the button shows its spinner right away
     try {
       const side =
         saved && saved.text === text.trim()
@@ -146,7 +147,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
         router.push(`/c/${caseId}`);
       }, "joinCase");
     } catch (e) {
-      setError(friendlyError(e));
+      fail(friendlyError(e));
     }
   }
 

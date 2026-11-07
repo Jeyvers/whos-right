@@ -4,6 +4,7 @@ import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
 import { PAY_STEP_LABEL, type PayPlan, type PayStep } from "@/hooks/usePayFee";
 import { Hint } from "./ui";
+import { Spinner } from "./Loading";
 
 /** Summary of exactly what one tap will do, then the button. */
 export function PayButton(props: {
@@ -43,7 +44,7 @@ export function PayButton(props: {
         </Hint>
       )}
       <button className="btn" disabled={disabled || busy || Boolean(short) || fee === undefined} onClick={onPay}>
-        {busy ? PAY_STEP_LABEL[step] : fee !== undefined ? `${label} · ${formatG(fee)} ${sym}` : label}
+        {busy ? <><Spinner /> {PAY_STEP_LABEL[step]}</> : fee !== undefined ? `${label} · ${formatG(fee)} ${sym}` : label}
       </button>
       {busy && <Hint>Keep this page open.</Hint>}
     </div>

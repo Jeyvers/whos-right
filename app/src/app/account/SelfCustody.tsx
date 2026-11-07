@@ -11,6 +11,7 @@ import { erc20Abi } from "@/lib/abi/tokens";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
+import { Spinner } from "@/components/Loading";
 
 /** Your G$ is yours: send it anywhere, any time, and export your wallet's key. */
 export function SelfCustody() {
@@ -68,7 +69,7 @@ export function SelfCustody() {
           <button type="button" className="btn-secondary" onClick={() => setAmount(formatG(me.gBalance).replace(/,/g, ""))}>Max</button>
         </div>
       </label>
-      <button className="btn-secondary self-start" disabled={busy} onClick={send}>{busy ? "Sending…" : `Send ${sym}`}</button>
+      <button className="btn-secondary self-start" disabled={busy} onClick={send}>{busy ? <><Spinner /> Sending…</> : `Send ${sym}`}</button>
       {sent && <p className="font-semibold text-side-b">{sent}</p>}
       <ErrorNote>{error}</ErrorNote>
       {builtIn && (

@@ -2,24 +2,28 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import Link from "next/link";
+import { Spinner } from "./Loading";
 
 /** Home page call to action. */
 export function LoginButton() {
   const { ready, authenticated, login } = usePrivy();
   if (!ready) {
-    return <button className="btn" disabled>Loading…</button>;
+    return <button className="btn" disabled><Spinner /> Loading…</button>;
   }
   if (!authenticated) {
     return (
-      <button className="btn" onClick={login}>
-        <Gavel /> Sign in to start a case
-      </button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <button className="btn" onClick={login}>
+          <Gavel /> Sign in to start a case
+        </button>
+        <Link href="/cases" className="btn bg-white">Judge cases</Link>
+      </div>
     );
   }
   return (
     <div className="flex flex-wrap justify-center gap-3">
       <Link href="/new" className="btn"><Gavel /> Start a case</Link>
-      <Link href="/jury" className="btn bg-white">Be a juror</Link>
+      <Link href="/jury?join=1" className="btn bg-white">Be a juror</Link>
     </div>
   );
 }

@@ -81,3 +81,34 @@
     animation: none;
   }
 }
+
+/* Loading: the scales keep weighing, gently and endlessly. */
+@keyframes weighing {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes weighing-pan {
+  0%, 100% { transform: rotate(10deg); }
+  50% { transform: rotate(-10deg); }
+}
+.scales-loading .scales-beam,
+.scales-loading .scales-pan-a,
+.scales-loading .scales-pan-b {
+  animation-duration: 1.4s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: 0s;
+}
+.scales-loading .scales-beam { animation-name: weighing; }
+.scales-loading .scales-pan-a,
+.scales-loading .scales-pan-b { animation-name: weighing-pan; }
+@media (prefers-reduced-motion: reduce) {
+  .scales-loading { animation: loading-fade 1.6s ease-in-out infinite; }
+  .scales-loading .scales-beam,
+  .scales-loading .scales-pan-a,
+  .scales-loading .scales-pan-b { animation: none; }
+}
+@keyframes loading-fade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

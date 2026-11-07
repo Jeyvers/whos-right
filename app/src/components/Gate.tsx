@@ -8,6 +8,8 @@ import { network } from "@/lib/network";
 import { useMe } from "@/hooks/useMe";
 import { useTx } from "@/hooks/useTx";
 import { ErrorNote, Hint, Panel } from "./ui";
+import { Loading } from "./Loading";
+import { Spinner } from "@/components/Loading";
 
 /**
  * Shows `children` once the person is signed in (and, on mainnet, verified).
@@ -18,7 +20,7 @@ export function Gate({ children, needVerified = true }: { children: ReactNode; n
   const { ready, authenticated, login } = usePrivy();
   const me = useMe();
 
-  if (!ready) return <Panel><Hint>Loading…</Hint></Panel>;
+  if (!ready) return <Panel><Loading /></Panel>;
   if (!authenticated) {
     return (
       <Panel>
@@ -27,7 +29,7 @@ export function Gate({ children, needVerified = true }: { children: ReactNode; n
       </Panel>
     );
   }
-  if (!me.address || !me.ready) return <Panel><Hint>Checking your wallet…</Hint></Panel>;
+  if (!me.address || !me.ready) return <Panel><Loading label="Checking your wallet…" /></Panel>;
   if (needVerified && !me.verified && !network.testnet) return <VerifyPrompt />;
   return <>{children}</>;
 }
@@ -61,7 +63,7 @@ export function VerifyPrompt() {
               }
             }}
           >
-            {busy ? "Verifying…" : "Verify (test)"}
+            {busy ? <><Spinner /> Verifying…</> : "Verify (test)"}
           </button>
           <Hint>Test network: this button stands in for GoodDollar face verification.</Hint>
         </>

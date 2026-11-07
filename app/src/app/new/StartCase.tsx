@@ -35,7 +35,7 @@ function StartCaseForm() {
   const router = useRouter();
   const authFetch = useAuthFetch();
   const sendTx = useTx();
-  const { pay, plan, step, error, setError, me } = usePayFee();
+  const { pay, plan, step, error, begin, fail, me } = usePayFee();
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState<SpeedValue>(SPEED.Standard);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
@@ -60,7 +60,7 @@ function StartCaseForm() {
       setAttempted(true);
       return;
     }
-    setError(undefined);
+    begin(); // the button shows its spinner right away
     try {
       // 1. Save the text off-chain; get the salted hash that goes on-chain. Reuse it if unchanged.
       const side =
@@ -94,7 +94,7 @@ function StartCaseForm() {
         router.push(`/c/${caseId}?new=1`);
       }, "openCase");
     } catch (e) {
-      setError(friendlyError(e));
+      fail(friendlyError(e));
     }
   }
 

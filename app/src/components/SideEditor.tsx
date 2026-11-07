@@ -25,7 +25,7 @@ export function SideEditor(props: {
       <textarea
         id="side"
         rows={6}
-        maxLength={MAX_SIDE_LENGTH + 50}
+        maxLength={MAX_SIDE_LENGTH}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="My roommate says chips are the best breakfast side. I say sausage, because it actually fills you up..."
@@ -36,9 +36,16 @@ export function SideEditor(props: {
         }`}
       />
       <div id="side-help" className="flex justify-between gap-2 text-sm text-ink/60">
-        <span>Use roles like &ldquo;my roommate&rdquo;, not names. No phone numbers, emails, addresses or links.</span>
+        <span>Keep it short. Use roles like &ldquo;my roommate&rdquo;, not names. No phone numbers, emails, addresses or links.</span>
         <span className="shrink-0 tabular-nums" aria-live="polite">{counter}</span>
       </div>
+      <p className="flex items-center gap-1.5 text-sm text-ink/60">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
+          <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
+          <path d="M6 11a6 6 0 0 0 12 0M12 17v4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </svg>
+        Tap the mic on your keyboard to speak instead.
+      </p>
       {attempted && errors.map((e) => <p key={e} role="alert" className="text-sm font-semibold text-side-a">{e}</p>)}
       {warnings.map((w) => <p key={w} className="text-sm font-semibold text-amber-700">{w}</p>)}
       {footnote && <p className="text-sm text-ink/50">{footnote}</p>}

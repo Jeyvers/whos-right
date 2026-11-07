@@ -20,6 +20,11 @@ import { wagmiConfig } from "@/lib/wagmi";
 import { KeeperBanner } from "@/components/KeeperBanner";
 import { useKeeperPoke, useKeeperStatus } from "@/hooks/useKeeper";
 import { VotePanel } from "./VotePanel";
+import { CrowdBar } from "@/components/CaseCard";
+import { useCrowdVote } from "@/hooks/useCrowdVote";
+import { calledIt } from "@/lib/crowd";
+import { Loading } from "@/components/Loading";
+import { Spinner } from "@/components/Loading";
 
 export function CaseView() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +39,7 @@ export function CaseView() {
   useKeeperPoke(waitingOnKeeper);
 
   if (!caseId) return <Page><Title>Case not found</Title></Page>;
-  if (isLoading || !c) return <Page><Hint>Loading case…</Hint></Page>;
+  if (isLoading || !c) return <Page><Loading label="Opening the case…" /></Page>;
   if (c.status === 0) return <Page><Title>Case not found</Title></Page>;
 
   const status = statusName(c);
@@ -84,6 +89,10 @@ export function CaseView() {
         <SideCard side="A" label={isA ? "Your side" : "Side A"} text={sideText(t?.sideA, "A")} highlight={winner === "A"} />
         <SideCard side="B" label={isB ? "Your side" : "Side B"} text={sideText(t?.sideB, "B")} highlight={winner === "B"} />
       </div>
+
+      {!isA && !isB && !isJuror && t && t.access !== "invite" && c.status >= 2 && (
+        <CrowdSection caseId={caseId} c={c} myVote={t.myCrowdVote} crowd={t.crowd} total={t.crowdTotal} />
+      )}
 
       {isJuror && c.status === 4 && caseId && <VotePanel caseId={caseId} c={c} jurors={jurors} myVote={myVote!} onDone={refetch} />}
 
@@ -153,7 +162,7 @@ function StagePanel(props: {
   };
   const btn = (label: string, onClick: () => Promise<unknown>) => (
     <button className="btn self-start" disabled={Boolean(busy)} onClick={() => run(label, onClick)}>
-      {busy === label ? "Working…" : label}
+      {busy === label ? <><Spinner /> Working…</> : label}
     </button>
   );
   const keeper = useKeeperStatus().data;
@@ -340,5 +349,44 @@ function ReportCase({ caseId }: { caseId: bigint }) {
       </button>
       <ErrorNote>{error}</ErrorNote>
     </div>
+  );
+}
+
+/** Crowd vote for anyone who isn't a party or a drawn juror. Results appear with the official verdict. */
+function CrowdSection(props: { caseId: bigint; c: ChainCase; myVote: number | null; crowd: { a: number; b: number } | null; total: number }) {
+  const { caseId, c, crowd, total } = props;
+  const { myVote, cast, busy, error } = useCrowdVote(caseId.toString(), props.myVote);
+  const decided = c.status === 5 || c.status === 6;
+  const called = calledIt(myVote, c.status, c.verdict);
+  return (
+    <Panel>
+      <p className="font-display text-xl font-extrabold">{decided ? "What the crowd said" : "Who do you think is right?"}</p>
+      {!decided && !myVote && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="btn bg-side-a text-white" disabled={busy} onClick={() => cast(1)}>{busy ? <Spinner /> : "A is right"}</button>
+            <button className="btn bg-side-b text-white" disabled={busy} onClick={() => cast(2)}>{busy ? <Spinner /> : "B is right"}</button>
+          </div>
+          <Hint>The random jury gives the official verdict. See if you call it.</Hint>
+        </>
+      )}
+      {!decided && myVote && (
+        <p>
+          <strong>You said {myVote === 1 ? "A" : "B"}.</strong> Crowd results show once the jury decides
+          {total > 1 ? ` · ${total} people have weighed in` : ""}.
+        </p>
+      )}
+      {decided && (
+        <>
+          {called !== null && (
+            <p className={`self-start rounded-full px-3 py-1 font-extrabold ${called ? "bg-verdict" : "bg-ink/10"}`}>
+              {called ? "You called it ✓" : "The jury disagreed with you ✗"}
+            </p>
+          )}
+          {crowd ? <CrowdBar a={crowd.a} b={crowd.b} /> : <Hint>No crowd votes on this one.</Hint>}
+        </>
+      )}
+      <ErrorNote>{error}</ErrorNote>
+    </Panel>
   );
 }
