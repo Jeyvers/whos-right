@@ -40,6 +40,7 @@ function StartCaseForm() {
   const [speed, setSpeed] = useState<SpeedValue>(SPEED.Standard);
   const [agree, setAgree] = useState(false);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
+  const [attempted, setAttempted] = useState(false);
 
   const wr = network.whosRight!;
   const fees = useReadContracts({
@@ -56,6 +57,10 @@ function StartCaseForm() {
 
   async function submit() {
     if (fee === undefined) return;
+    if (!textOk || !agree) {
+      setAttempted(true);
+      return;
+    }
     setError(undefined);
     try {
       // 1. Save the text off-chain; get the salted hash that goes on-chain. Reuse it if unchanged.
@@ -97,7 +102,13 @@ function StartCaseForm() {
   return (
     <div className="flex flex-col gap-6">
       {paused && <ErrorNote>New cases are paused right now.</ErrorNote>}
-      <SideEditor label="Your side of the story" value={text} onChange={setText} />
+      <SideEditor
+        label="Your side of the story"
+        value={text}
+        onChange={setText}
+        attempted={attempted}
+        footnote="Just a quick A vs B? This or That is coming soon."
+      />
 
       <div className="flex flex-col gap-2">
         <p className="font-display text-lg font-bold">How fast?</p>
@@ -124,7 +135,7 @@ function StartCaseForm() {
         <p className="text-sm text-ink/65">The other person pays the same. If no verdict is reached, you both get it back.</p>
       </div>
 
-      <PublicConsent checked={agree} onChange={setAgree} />
+      <PublicConsent checked={agree} onChange={setAgree} attempted={attempted} />
 
       <Panel>
         <PayButton
@@ -133,7 +144,7 @@ function StartCaseForm() {
           shortfall={fee !== undefined ? shortfall(fee) : 0n}
           needsClaim={fee !== undefined && needsClaim(fee)}
           step={step}
-          disabled={!textOk || !agree || Boolean(paused)}
+          disabled={Boolean(paused)}
           label="Pay and open case"
           onPay={submit}
         />

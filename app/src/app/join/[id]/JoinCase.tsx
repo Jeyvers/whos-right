@@ -103,6 +103,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   const [text, setText] = useState("");
   const [agree, setAgree] = useState(false);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
+  const [attempted, setAttempted] = useState(false);
   const wr = network.whosRight!;
 
   if (sameAddress(address, c.partyA)) {
@@ -110,6 +111,10 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   }
 
   async function submit() {
+    if (checkSideText(text).errors.length > 0 || !agree) {
+      setAttempted(true);
+      return;
+    }
     setError(undefined);
     try {
       const side =
@@ -148,8 +153,8 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
 
   return (
     <div className="flex flex-col gap-6">
-      <SideEditor label="Your side of the story" value={text} onChange={setText} />
-      <PublicConsent checked={agree} onChange={setAgree} />
+      <SideEditor label="Your side of the story" value={text} onChange={setText} attempted={attempted} />
+      <PublicConsent checked={agree} onChange={setAgree} attempted={attempted} />
       <Panel>
         <PayButton
           fee={c.fee}
@@ -157,7 +162,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
           shortfall={shortfall(c.fee)}
           needsClaim={needsClaim(c.fee)}
           step={step}
-          disabled={checkSideText(text).errors.length > 0 || !agree}
+          disabled={false}
           label="Pay and join"
           onPay={submit}
         />
