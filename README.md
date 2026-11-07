@@ -28,7 +28,8 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 | InsecureTestnetRandomness | `0x9C8943Cd33FC2e315b54b4CB761b88Dc6f70D804` |
 
 Owner `0x72ded37D6090671231b41ceEAb34f60A0FEA320c`. Jury 5, min pool 7, join window 1 day, draw window 1 hour,
-Standard 500 tG$ / Fast 1,500 tG$. Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
+launched at Standard 500 tG$ / Fast 1,500 tG$ — **still live until the owner calls `setSpeedFee` to move it to
+100 / 300** (or it is redeployed). Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
 
 Celo mainnet: not deployed.
 
@@ -49,12 +50,30 @@ Party A picks one of two presets when opening a case. There are no custom time l
 
 | Speed | Fee per party | Max commit stage | Max reveal stage |
 |---|---|---|---|
-| Standard | 500 G$ | 6 hours | 6 hours |
-| Fast | 1,500 G$ | 1 hour | 1 hour |
+| Standard | 100 G$ | 6 hours | 6 hours |
+| Fast | 300 G$ | 1 hour | 1 hour |
 
 The fee and both windows are copied onto the case when it is opened. Later fee changes by the owner never affect
 existing cases. B must pass the speed and fee they were shown to `joinCase`; if they differ the join reverts,
 and B always pays exactly what A paid.
+
+### Paying the fee ("use today's claim")
+
+Users can pay with the G$ they claim from GoodDollar UBI that day. Don't assume one claim covers either fee: the
+daily claim amount changes and can be less than the Fast fee or even the Standard fee. Before any payment
+(open or join), the frontend:
+
+1. Reads the fee: `speedFee(speed)` for A, or `getCase(caseId).fee` for B.
+2. Reads the user's G$ balance and today's unclaimed amount (`checkEntitlement(user)` on GoodDollar's UBIScheme;
+   0 if already claimed).
+3. If `balance >= fee`: one tap pays (approve + `openCase`/`joinCase`).
+4. If `balance < fee` but `balance + todaysClaim >= fee`: one tap claims and pays. Use one batched wallet request
+   (`wallet_sendCalls`: `claim()` → `approve` → `openCase`/`joinCase`) when the wallet supports it, otherwise
+   send the same calls one after another from the same tap.
+5. Otherwise, block payment with a clear message, for example: "You need 300 G$ for Fast. You have 120 G$
+   (including today's claim). Choose Standard (100 G$) or come back after your next claim."
+
+There is no welcome credit or subsidy.
 
 Stages end early: the commit stage ends the moment every juror has committed (the full reveal window starts then),
 and the reveal stage ends the moment every committed juror has revealed, so `finalize` can run immediately.
@@ -160,7 +179,7 @@ forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whos-ri
 forge script script/DeployMainnet.s.sol --rpc-url celo --account whos-right
 ```
 
-Fees start at the presets (Standard 500, Fast 1,500 per party) on both networks. Voting windows are fixed presets.
+Fees start at the presets (Standard 100, Fast 300 G$ per party; cap 10,000) on both networks. Voting windows are fixed presets.
 Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `DRAW_WINDOW`):
 
 | | Testnet | Mainnet |

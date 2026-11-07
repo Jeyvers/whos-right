@@ -34,6 +34,11 @@ tx() { # tx <walletIndex> <to> <sig> [args...] ; optional env VALUE ; retries tr
 }
 call() { cast call "$@" -r $R; }
 step() { echo; echo "== $*"; }
+need_fee() { # need_fee <walletIndex> <fee> : check balance before paying; stop with a clear message if short
+  local bal; bal=$(call $TG 'balanceOf(address)(uint256)' "${AD[$1]}" | awk '{print $1}')
+  python3 -I -c "import sys; sys.exit(0 if int(sys.argv[1]) >= int(sys.argv[2]) else 1)" "$bal" "$2" && return 0
+  echo "NOT ENOUGH tG\$: ${AD[$1]} has $(cast from-wei "$bal") tG\$, the fee is $(cast from-wei "$2") tG\$"; exit 1
+}
 
 step "Funding 9 wallets from ${AD[$F]} ($(cast balance ${AD[$F]} -r $R --ether) CELO)"
 for i in $A $B "${JUR[@]}"; do
@@ -54,6 +59,7 @@ done
 echo "activePoolSize: $(call $WR 'activePoolSize()(uint256)')"
 
 step "A opens a FAST case with a one-time invite key"
+need_fee $A "$(call $WR 'speedFee(uint8)(uint256)' 1 | awk '{print $1}')"
 INV_PK=$(cast wallet new --json | python3 -I -c "import json,sys; print(json.load(sys.stdin)['data'][0]['private_key'])")
 INV=$(cast wallet address --private-key "$INV_PK")
 tx $A $WR "openCase(uint8,bytes32,address)" 1 "$(cast keccak 'smoke: argument A')" "$INV"
@@ -64,6 +70,7 @@ step "B reads the terms, signs the invite with the link key, joins"
 FEE=$(call $WR 'speedFee(uint8)(uint256)' 1 | awk '{print $1}')
 DIGEST=$(call $WR 'joinDigest(uint256,address)(bytes32)' "$CASE" "${AD[$B]}")
 SIG=$(cast wallet sign --no-hash "$DIGEST" --private-key "$INV_PK")
+need_fee $B "$FEE"
 tx $B $WR "joinCase(uint256,bytes32,uint8,uint256,bytes)" "$CASE" "$(cast keccak 'smoke: argument B')" 1 "$FEE" "$SIG"
 echo "contract tG\$ balance: $(call $TG 'balanceOf(address)(uint256)' $WR)"
 

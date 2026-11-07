@@ -12,8 +12,8 @@ import {MockRandomness} from "../mocks/MockRandomness.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 abstract contract BaseTest is Test {
-    uint256 internal constant FEE = 500e18; // Standard
-    uint256 internal constant FAST_FEE = 1_500e18;
+    uint256 internal constant FEE = 100e18; // Standard
+    uint256 internal constant FAST_FEE = 300e18;
     uint256 internal constant JURY = 5;
     uint256 internal constant MIN_POOL = 7;
     uint256 internal constant JOIN_WINDOW = 1 days;

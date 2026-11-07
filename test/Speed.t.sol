@@ -17,11 +17,11 @@ contract SpeedTest is BaseTest {
         uint256 caseId = _openAndJoinSpeed(STANDARD);
         WhosRight.Case memory c = wr.getCase(caseId);
         assertEq(uint8(c.speed), uint8(STANDARD));
-        assertEq(c.fee, 500e18);
+        assertEq(c.fee, 100e18);
         assertEq(c.commitWindow, 6 hours);
         assertEq(c.revealWindow, 6 hours);
-        assertEq(a0 - gd.balanceOf(alice), 500e18);
-        assertEq(b0 - gd.balanceOf(bob), 500e18, "B pays the same as A");
+        assertEq(a0 - gd.balanceOf(alice), 100e18);
+        assertEq(b0 - gd.balanceOf(bob), 100e18, "B pays the same as A");
     }
 
     function test_Fast_FeeAndWindowsStoredOnCase() public {
@@ -30,11 +30,11 @@ contract SpeedTest is BaseTest {
         uint256 caseId = _openAndJoinSpeed(FAST);
         WhosRight.Case memory c = wr.getCase(caseId);
         assertEq(uint8(c.speed), uint8(FAST));
-        assertEq(c.fee, 1_500e18);
+        assertEq(c.fee, 300e18);
         assertEq(c.commitWindow, 1 hours);
         assertEq(c.revealWindow, 1 hours);
-        assertEq(a0 - gd.balanceOf(alice), 1_500e18);
-        assertEq(b0 - gd.balanceOf(bob), 1_500e18, "B pays the same as A");
+        assertEq(a0 - gd.balanceOf(alice), 300e18);
+        assertEq(b0 - gd.balanceOf(bob), 300e18, "B pays the same as A");
     }
 
     function test_Standard_DeadlinesAreSixHourMaximums() public {
@@ -86,7 +86,7 @@ contract SpeedTest is BaseTest {
         assertEq(uint8(wr.getCase(caseId).verdict), uint8(WhosRight.Verdict.PartyB));
         assertLt(block.timestamp - start, 1 hours);
         for (uint256 i; i < 5; ++i) {
-            assertEq(wr.owed(j[i]), 2 * 1_500e18 / 5);
+            assertEq(wr.owed(j[i]), 2 * 300e18 / 5);
         }
     }
 
@@ -97,10 +97,10 @@ contract SpeedTest is BaseTest {
         bytes memory sig = _sig(caseId, bob);
         vm.startPrank(bob);
         vm.expectRevert(WhosRight.TermsMismatch.selector);
-        wr.joinCase(caseId, CONTENT_B, STANDARD, 1_500e18, sig); // wrong speed
+        wr.joinCase(caseId, CONTENT_B, STANDARD, 300e18, sig); // wrong speed
         vm.expectRevert(WhosRight.TermsMismatch.selector);
-        wr.joinCase(caseId, CONTENT_B, FAST, 500e18, sig); // wrong fee
-        wr.joinCase(caseId, CONTENT_B, FAST, 1_500e18, sig);
+        wr.joinCase(caseId, CONTENT_B, FAST, 100e18, sig); // wrong fee
+        wr.joinCase(caseId, CONTENT_B, FAST, 300e18, sig);
         vm.stopPrank();
     }
 
@@ -185,16 +185,16 @@ contract SpeedTest is BaseTest {
         // B still sees and pays the fee locked at creation.
         uint256 b0 = gd.balanceOf(bob);
         _join(stdCase, bob);
-        assertEq(b0 - gd.balanceOf(bob), 500e18);
+        assertEq(b0 - gd.balanceOf(bob), 100e18);
         b0 = gd.balanceOf(bob);
         _join(fastCase, bob);
-        assertEq(b0 - gd.balanceOf(bob), 1_500e18);
+        assertEq(b0 - gd.balanceOf(bob), 300e18);
 
         WhosRight.Case memory s = wr.getCase(stdCase);
         WhosRight.Case memory f = wr.getCase(fastCase);
-        assertEq(s.fee, 500e18);
+        assertEq(s.fee, 100e18);
         assertEq(s.commitWindow, 6 hours);
-        assertEq(f.fee, 1_500e18);
+        assertEq(f.fee, 300e18);
         assertEq(f.commitWindow, 1 hours);
 
         // New cases use the new fees; windows are fixed presets.
@@ -210,7 +210,7 @@ contract SpeedTest is BaseTest {
         uint256 caseId = _toDrawnSpeed(SEED, FAST);
         WhosRight.Case memory before = wr.getCase(caseId);
         vm.prank(owner);
-        wr.setSpeedFee(FAST, 100e18);
+        wr.setSpeedFee(FAST, 50e18);
         vm.prank(owner);
         wr.setNewCasesPaused(true);
 
@@ -225,7 +225,7 @@ contract SpeedTest is BaseTest {
         assertEq(c.fee, before.fee);
         assertEq(c.commitWindow, before.commitWindow);
         assertEq(c.revealWindow, before.revealWindow);
-        assertEq(wr.owed(j[0]), 2 * 1_500e18 / 5, "payout from locked fee");
+        assertEq(wr.owed(j[0]), 2 * 300e18 / 5, "payout from locked fee");
     }
 
     function test_FeeCap_AppliesToBothSpeeds() public {
@@ -253,7 +253,7 @@ contract SpeedTest is BaseTest {
         newStd = bound(newStd, 1, wr.MAX_CASE_FEE());
         newFast = bound(newFast, 1, wr.MAX_CASE_FEE());
         WhosRight.Speed speed = fast ? FAST : STANDARD;
-        uint256 expected = fast ? 1_500e18 : 500e18;
+        uint256 expected = fast ? 300e18 : 100e18;
         uint256 caseId = _openSpeed(speed);
         vm.startPrank(owner);
         wr.setSpeedFee(STANDARD, newStd);

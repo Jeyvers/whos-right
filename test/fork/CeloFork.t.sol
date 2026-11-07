@@ -39,7 +39,7 @@ contract CeloForkTest is Test {
         0xA4634427d964402A76F91E2Ff2361A07f9D789f6
     ];
 
-    uint256 internal constant FEE = 500e18;
+    uint256 internal constant FEE = 100e18;
     uint256 internal constant INVITE_PK = 0xA11CE;
     WhosRight internal wr;
     MockRandomness internal rng;
@@ -60,7 +60,7 @@ contract CeloForkTest is Test {
                 randomnessSource: IRandomnessSource(address(rng)),
                 owner: address(this),
                 standardFee: FEE,
-                fastFee: 1_500e18,
+                fastFee: 300e18,
                 jurySize: 5,
                 minPoolSize: 7,
                 joinWindow: 1 days,

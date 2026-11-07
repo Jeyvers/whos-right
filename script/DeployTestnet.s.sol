@@ -34,8 +34,8 @@ contract DeployTestnet is Script {
                 identity: IIdentity(address(identity)),
                 randomnessSource: IRandomnessSource(address(rng)),
                 owner: deployer,
-                standardFee: 500e18, // Standard: 500 G$ per party, 6h max commit + 6h max reveal
-                fastFee: 1_500e18, // Fast: 1,500 G$ per party, 1h max commit + 1h max reveal
+                standardFee: 100e18, // Standard: 100 G$ per party, 6h max commit + 6h max reveal
+                fastFee: 300e18, // Fast: 300 G$ per party, 1h max commit + 1h max reveal
                 jurySize: vm.envOr("JURY_SIZE", uint256(5)),
                 minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(7)),
                 joinWindow: vm.envOr("JOIN_WINDOW", uint256(1 days)),
