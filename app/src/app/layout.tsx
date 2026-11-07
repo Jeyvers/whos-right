@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Nunito } from "next/font/google";
 import Link from "next/link";
+import { HeaderNav } from "@/components/HeaderNav";
 import { Scales } from "@/components/Scales";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -24,12 +25,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <Scales className="h-9 w-9 rounded-full bg-white p-0.5" />
                 Who&apos;s Right?
               </Link>
-              <span
-                className="rounded-full border-2 border-ink bg-side-a px-2.5 py-0.5 font-display text-sm font-extrabold text-white"
-                aria-label="Adults only, 18 and over"
-              >
-                18+
-              </span>
+              <div className="flex items-center gap-3">
+                <HeaderNav />
+                <span
+                  className="rounded-full border-2 border-ink bg-side-a px-2.5 py-0.5 font-display text-sm font-extrabold text-white"
+                  aria-label="Adults only, 18 and over"
+                >
+                  18+
+                </span>
+              </div>
             </div>
           </header>
           <main className="flex-1">{children}</main>

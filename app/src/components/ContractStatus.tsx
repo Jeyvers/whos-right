@@ -37,7 +37,8 @@ export function ContractStatus() {
       { ...contract, functionName: "newCasesPaused" },
     ],
     allowFailure: false,
-    query: { enabled: Boolean(address) },
+    // Live: re-read every 15s while the page is open (and on tab focus).
+    query: { enabled: Boolean(address), refetchInterval: 15_000 },
   });
 
   if (!address) return <p className="tile p-4">Not open on {network.label} yet.</p>;
