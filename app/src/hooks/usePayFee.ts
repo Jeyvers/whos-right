@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { erc20Abi, testnetFaucetAbi } from "@/lib/abi/tokens";
+import { erc20Abi, testnetFaucetAbi, testnetIdentityAbi } from "@/lib/abi/tokens";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
+import type { GasStep } from "@/lib/gasSteps";
 import { network } from "@/lib/network";
+import { useEnsureGas } from "./useEnsureGas";
 import { useMe } from "./useMe";
 import { useTx } from "./useTx";
 
@@ -19,55 +21,88 @@ function todaysClaim(): bigint {
   return network.testnet ? TESTNET_FAUCET_AMOUNT : 0n;
 }
 
-export type PayStep = "idle" | "claiming" | "approving" | "paying" | "done";
+export type PayStep = "idle" | "gas" | "verifying" | "claiming" | "approving" | "paying" | "done";
+
+export type PayPlan = {
+  verify: boolean;
+  claim: boolean;
+  approve: boolean;
+  shortfall: bigint;
+  /** Plain list of what one tap will do, for the summary shown before paying. */
+  summary: string[];
+};
 
 /**
- * "Use today's claim" payment. Before paying it checks balance + today's claim, then in ONE tap runs:
- * claim (only if needed) -> approve (exact fee, only if needed) -> the pay action.
+ * "Use today's claim" payment, in ONE tap:
+ *   (testnet: verify) -> claim (only if needed) -> approve the exact fee (only if needed) -> the pay action.
+ * Gas for the whole plan is topped up once, before the first step.
  * Never assumes one claim covers the fee: if balance + claim is still short, it stops with a clear message.
  */
 export function usePayFee() {
   const me = useMe();
   const sendTx = useTx();
+  const ensureGas = useEnsureGas();
   const [step, setStep] = useState<PayStep>("idle");
   const [error, setError] = useState<string>();
-
   const sym = network.tokenSymbol;
-  const shortfall = (fee: bigint) => {
-    const claim = me.gBalance >= fee ? 0n : todaysClaim();
-    return me.gBalance + claim >= fee ? 0n : fee - (me.gBalance + claim);
-  };
-  const needsClaim = (fee: bigint) => me.gBalance < fee;
+
+  const plan = useCallback(
+    (fee: bigint, actionLabel: string): PayPlan => {
+      const verify = !me.verified && Boolean(network.testnet);
+      const claim = me.gBalance < fee;
+      const available = me.gBalance + (claim ? todaysClaim() : 0n);
+      const shortfall = available >= fee ? 0n : fee - available;
+      const approve = me.allowance < fee;
+      const summary = [
+        ...(verify ? ["Verify you (test)"] : []),
+        ...(claim ? [network.testnet ? "Get free test G$" : "Claim today's G$"] : []),
+        ...(approve ? [`Approve exactly ${formatG(fee)} ${sym}`] : []),
+        actionLabel,
+      ];
+      return { verify, claim, approve, shortfall, summary };
+    },
+    [me.verified, me.gBalance, me.allowance, sym],
+  );
 
   const pay = useCallback(
-    async (fee: bigint, action: () => Promise<void>): Promise<boolean> => {
+    async (fee: bigint, action: () => Promise<void>, actionStep: GasStep): Promise<boolean> => {
       setError(undefined);
       try {
-        if (!me.verified) throw new Error("Verify you're a real person first.");
-        if (me.gasBalance === 0n) throw new Error("You need a little CELO for the network fee (gas).");
-        let balance = me.gBalance;
-        if (balance < fee) {
-          const claim = todaysClaim();
-          if (balance + claim < fee) {
-            throw new Error(
-              `You need ${formatG(fee)} ${sym}. You have ${formatG(balance)} ${sym}` +
-                (claim > 0n ? ` plus ${formatG(claim)} ${sym} from today's claim.` : ", and no claim left today.") +
-                " Pick Standard or come back after your next claim.",
-            );
-          }
-          setStep("claiming");
-          if (network.testnet) {
-            await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet" });
-          }
-          balance += claim;
+        const p = plan(fee, "");
+        if (!me.verified && !network.testnet) throw new Error("Verify you're a real person first.");
+        if (p.shortfall > 0n) {
+          throw new Error(
+            `You need ${formatG(fee)} ${sym}. You have ${formatG(me.gBalance)} ${sym}` +
+              (todaysClaim() > 0n ? ` plus ${formatG(todaysClaim())} ${sym} from today's claim.` : ", and no claim left today.") +
+              " Pick Standard or come back after your next claim.",
+          );
         }
-        if (me.allowance < fee) {
+
+        const steps: GasStep[] = [
+          ...(p.verify ? (["verifyMe"] as const) : []),
+          ...(p.claim && network.testnet ? (["faucet"] as const) : []),
+          ...(p.approve ? (["approve"] as const) : []),
+          actionStep,
+        ];
+        setStep("gas");
+        await ensureGas(steps);
+
+        if (p.verify && network.testnet) {
+          setStep("verifying");
+          await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe", gasEnsured: true });
+        }
+        if (p.claim && network.testnet) {
+          setStep("claiming");
+          await sendTx({ address: network.testnet.faucetToken, abi: testnetFaucetAbi, functionName: "faucet", gasEnsured: true });
+        }
+        if (p.approve) {
           setStep("approving");
           await sendTx({
             address: network.goodDollar,
             abi: erc20Abi,
             functionName: "approve",
-            args: [network.whosRight!, fee],
+            args: [network.whosRight!, fee], // exact fee, never unlimited
+            gasEnsured: true,
           });
         }
         setStep("paying");
@@ -82,14 +117,16 @@ export function usePayFee() {
         return false;
       }
     },
-    [me, sendTx, sym],
+    [me, sendTx, ensureGas, plan, sym],
   );
 
-  return { pay, step, error, setError, shortfall, needsClaim, me };
+  return { pay, plan, step, error, setError, me };
 }
 
 export const PAY_STEP_LABEL: Record<PayStep, string> = {
   idle: "",
+  gas: "Getting ready…",
+  verifying: "Verifying you…",
   claiming: network.testnet ? "Getting test G$…" : "Claiming today's G$…",
   approving: "Approving the fee…",
   paying: "Paying…",

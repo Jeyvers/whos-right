@@ -35,7 +35,7 @@ function StartCaseForm() {
   const router = useRouter();
   const authFetch = useAuthFetch();
   const sendTx = useTx();
-  const { pay, step, error, setError, shortfall, needsClaim, me } = usePayFee();
+  const { pay, plan, step, error, setError, me } = usePayFee();
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState<SpeedValue>(SPEED.Standard);
   const [agree, setAgree] = useState(false);
@@ -87,13 +87,14 @@ function StartCaseForm() {
           abi: whosRightAbi,
           functionName: "openCase",
           args: [speed, side.contentHash, inviteSigner],
+          gasEnsured: true,
         });
         const [opened] = parseEventLogs({ abi: whosRightAbi, eventName: "CaseOpened", logs: receipt.logs });
         const caseId = opened.args.caseId;
         saveInviteKey(caseId, invitePk);
         await authFetch(`/api/cases/${caseId}/link`, { method: "POST", body: JSON.stringify({ sideId: side.sideId }) });
         router.push(`/c/${caseId}?new=1`);
-      });
+      }, "openCase");
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -141,8 +142,7 @@ function StartCaseForm() {
         <PayButton
           fee={fee}
           balance={me.gBalance}
-          shortfall={fee !== undefined ? shortfall(fee) : 0n}
-          needsClaim={fee !== undefined && needsClaim(fee)}
+          plan={fee !== undefined ? plan(fee, "Open your case") : undefined}
           step={step}
           disabled={Boolean(paused)}
           label="Pay and open case"

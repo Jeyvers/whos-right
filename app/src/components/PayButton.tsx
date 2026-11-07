@@ -2,41 +2,50 @@
 
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
-import { PAY_STEP_LABEL, type PayStep } from "@/hooks/usePayFee";
+import { PAY_STEP_LABEL, type PayPlan, type PayStep } from "@/hooks/usePayFee";
 import { Hint } from "./ui";
 
-/** The pay button plus a plain line about where the G$ comes from. */
+/** Summary of exactly what one tap will do, then the button. */
 export function PayButton(props: {
   fee: bigint | undefined;
   balance: bigint;
-  shortfall: bigint;
-  needsClaim: boolean;
+  plan: PayPlan | undefined;
   step: PayStep;
   disabled: boolean;
   label: string;
   onPay: () => void;
 }) {
-  const { fee, balance, shortfall, needsClaim, step, disabled, label, onPay } = props;
+  const { fee, balance, plan, step, disabled, label, onPay } = props;
   const sym = network.tokenSymbol;
   const busy = step !== "idle" && step !== "done";
+  const short = plan && plan.shortfall > 0n;
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      {plan && fee !== undefined && !short && plan.summary.length > 1 && (
+        <div className="rounded-xl bg-lilac p-3 text-sm">
+          <p className="font-bold">One tap will:</p>
+          <ol className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {plan.summary.map((s, i) => (
+              <li key={s} className="flex items-center gap-2">
+                {i > 0 && <span aria-hidden className="text-ink/40">→</span>}
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
       {fee !== undefined && (
         <Hint>
-          You have {formatG(balance)} {sym}.{" "}
-          {shortfall > 0n
-            ? `You're ${formatG(shortfall)} ${sym} short, even with today's claim.`
-            : needsClaim
-              ? network.testnet
-                ? "Paying will first get you free test G$, then pay."
-                : "Paying will first claim today's G$, then pay."
-              : ""}
+          You have {formatG(balance)} {sym}.
+          {short && ` You're ${formatG(plan!.shortfall)} ${sym} short, even with today's claim.`}
+          {!network.testnet && !short && " Your wallet asks you to confirm."}
+          {" "}Network fees are covered for you, up to a daily limit.
         </Hint>
       )}
-      <button className="btn" disabled={disabled || busy || shortfall > 0n || fee === undefined} onClick={onPay}>
+      <button className="btn" disabled={disabled || busy || Boolean(short) || fee === undefined} onClick={onPay}>
         {busy ? PAY_STEP_LABEL[step] : fee !== undefined ? `${label} · ${formatG(fee)} ${sym}` : label}
       </button>
-      {busy && <Hint>Confirm each step in your wallet if it asks. Keep this page open.</Hint>}
+      {busy && <Hint>Keep this page open.</Hint>}
     </div>
   );
 }

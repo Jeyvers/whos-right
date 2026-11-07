@@ -12,6 +12,7 @@ import { whosRightAbi } from "@/lib/abi/whosRight";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
+import { SelfCustody } from "./SelfCustody";
 
 export function AccountHome() {
   return (
@@ -95,6 +96,8 @@ function AccountBody() {
         )}
         <ErrorNote>{error}</ErrorNote>
       </Panel>
+
+      <SelfCustody />
 
       <Panel>
         <p className="text-sm text-ink/60">Signed in{user?.email?.address ? ` as ${user.email.address}` : user?.google?.email ? ` as ${user.google.email}` : ""}</p>

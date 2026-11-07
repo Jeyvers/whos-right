@@ -10,8 +10,9 @@ import { useTx } from "@/hooks/useTx";
 import { ErrorNote, Hint, Panel } from "./ui";
 
 /**
- * Shows `children` only once the person is signed in, verified, and has a little gas.
- * Each missing step gets one clear prompt.
+ * Shows `children` once the person is signed in (and, on mainnet, verified).
+ * Gas is no longer a gate: actions top it up automatically. On testnet the stand-in verification runs as part
+ * of the action itself, so it doesn't block either.
  */
 export function Gate({ children, needVerified = true }: { children: ReactNode; needVerified?: boolean }) {
   const { ready, authenticated, login } = usePrivy();
@@ -27,8 +28,7 @@ export function Gate({ children, needVerified = true }: { children: ReactNode; n
     );
   }
   if (!me.address || !me.ready) return <Panel><Hint>Checking your wallet…</Hint></Panel>;
-  if (needVerified && !me.verified) return <VerifyPrompt />;
-  if (me.gasBalance === 0n) return <GasPrompt address={me.address} />;
+  if (needVerified && !me.verified && !network.testnet) return <VerifyPrompt />;
   return <>{children}</>;
 }
 
@@ -45,66 +45,30 @@ export function VerifyPrompt() {
       <p>Verify once to continue.</p>
       {testnet ? (
         <>
-          {me.gasBalance === 0n ? (
-            <GasNote address={me.address} />
-          ) : (
-            <button
-              className="btn self-start bg-white"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                setError(undefined);
-                try {
-                  await sendTx({ address: testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe" });
-                  await me.refetch();
-                } catch (e) {
-                  setError(friendlyError(e));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {busy ? "Verifying…" : "Verify (test)"}
-            </button>
-          )}
+          <button
+            className="btn self-start bg-white"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(undefined);
+              try {
+                await sendTx({ address: testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe" });
+                await me.refetch();
+              } catch (e) {
+                setError(friendlyError(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Verifying…" : "Verify (test)"}
+          </button>
           <Hint>Test network: this button stands in for GoodDollar face verification.</Hint>
         </>
       ) : (
         <Hint>GoodDollar face verification opens here at launch.</Hint>
       )}
       <ErrorNote>{error}</ErrorNote>
-    </Panel>
-  );
-}
-
-function GasNote({ address }: { address?: string }) {
-  return (
-    <div className="flex flex-col gap-2 text-sm">
-      <p className="font-semibold">You need a little CELO to pay network fees.</p>
-      {network.testnet ? (
-        <p>
-          Get free test CELO at{" "}
-          <a className="font-bold underline" href="https://faucet.celo.org/celo-sepolia" target="_blank" rel="noreferrer">
-            faucet.celo.org
-          </a>{" "}
-          for your wallet:
-        </p>
-      ) : (
-        <p>Send a little CELO to your wallet:</p>
-      )}
-      <code className="break-all rounded-lg bg-ink/5 px-2 py-1">{address}</code>
-      <button className="btn-secondary self-start" onClick={() => address && navigator.clipboard.writeText(address)}>
-        Copy address
-      </button>
-    </div>
-  );
-}
-
-function GasPrompt({ address }: { address: string }) {
-  return (
-    <Panel tone="yellow">
-      <GasNote address={address} />
-      <Hint>This page updates by itself once it arrives.</Hint>
     </Panel>
   );
 }

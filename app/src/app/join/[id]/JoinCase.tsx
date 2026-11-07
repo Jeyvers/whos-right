@@ -99,7 +99,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   const { address } = useAccount();
   const authFetch = useAuthFetch();
   const sendTx = useTx();
-  const { pay, step, error, setError, shortfall, needsClaim, me } = usePayFee();
+  const { pay, plan, step, error, setError, me } = usePayFee();
   const [text, setText] = useState("");
   const [agree, setAgree] = useState(false);
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
@@ -142,10 +142,11 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
           abi: whosRightAbi,
           functionName: "joinCase",
           args: [caseId, side.contentHash, c.speed, c.fee, signature],
+          gasEnsured: true,
         });
         await authFetch(`/api/cases/${caseId}/link`, { method: "POST", body: JSON.stringify({ sideId: side.sideId }) });
         router.push(`/c/${caseId}`);
-      });
+      }, "joinCase");
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -159,8 +160,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
         <PayButton
           fee={c.fee}
           balance={me.gBalance}
-          shortfall={shortfall(c.fee)}
-          needsClaim={needsClaim(c.fee)}
+          plan={plan(c.fee, "Join the case")}
           step={step}
           disabled={false}
           label="Pay and join"

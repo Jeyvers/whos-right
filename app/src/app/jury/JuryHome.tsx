@@ -7,6 +7,7 @@ import { Gate } from "@/components/Gate";
 import { ErrorNote, Hint, Page, Panel, StatusPill, Title } from "@/components/ui";
 import { useMe } from "@/hooks/useMe";
 import { useTx } from "@/hooks/useTx";
+import { testnetIdentityAbi } from "@/lib/abi/tokens";
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import { sameAddress, statusName, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
@@ -35,6 +36,9 @@ function PoolToggle() {
     setBusy(true);
     setError(undefined);
     try {
+      if (fn === "joinPool" && !me.verified && network.testnet) {
+        await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe" });
+      }
       await sendTx({ address: network.whosRight!, abi: whosRightAbi, functionName: fn });
       await me.refetch();
     } catch (e) {

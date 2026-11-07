@@ -6,8 +6,10 @@ import { useAccount, useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { encodeFunctionData, type Abi, type ContractFunctionArgs, type ContractFunctionName, type TransactionReceipt } from "viem";
 import { network } from "@/lib/network";
+import { isGasStep } from "@/lib/gasSteps";
 import { maySignSilently } from "@/lib/silentSigning";
 import { wagmiConfig } from "@/lib/wagmi";
+import { useEnsureGas } from "./useEnsureGas";
 
 type WriteParams<abi extends Abi, fn extends ContractFunctionName<abi, "nonpayable" | "payable">> = {
   address: `0x${string}`;
@@ -15,6 +17,8 @@ type WriteParams<abi extends Abi, fn extends ContractFunctionName<abi, "nonpayab
   functionName: fn;
   args?: ContractFunctionArgs<abi, "nonpayable" | "payable", fn>;
   value?: bigint;
+  /** Set when the caller already ensured gas for a multi-step plan. */
+  gasEnsured?: boolean;
 };
 
 /**
@@ -27,11 +31,14 @@ export function useTx() {
   const { sendTransaction } = useSendTransaction();
   const { wallets } = useWallets();
   const { address } = useAccount();
+  const ensureGas = useEnsureGas();
 
   return useCallback(
     async <abi extends Abi, fn extends ContractFunctionName<abi, "nonpayable" | "payable">>(
       p: WriteParams<abi, fn>,
     ): Promise<TransactionReceipt> => {
+      const fn = p.functionName as string;
+      if (!p.gasEnsured && isGasStep(fn)) await ensureGas([fn]);
       const builtIn = wallets.some(
         (w) => w.walletClientType === "privy" && address && w.address.toLowerCase() === address.toLowerCase(),
       );
@@ -48,13 +55,15 @@ export function useTx() {
           { address, uiOptions: { showWalletUIs: false } },
         ));
       } else {
+        const { gasEnsured, ...call } = p;
+        void gasEnsured;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        hash = await writeContractAsync({ ...(p as any), chainId: network.chain.id });
+        hash = await writeContractAsync({ ...(call as any), chainId: network.chain.id });
       }
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: network.chain.id });
       if (receipt.status !== "success") throw new Error("The transaction failed on-chain.");
       return receipt;
     },
-    [writeContractAsync, sendTransaction, wallets, address],
+    [writeContractAsync, sendTransaction, wallets, address, ensureGas],
   );
 }
