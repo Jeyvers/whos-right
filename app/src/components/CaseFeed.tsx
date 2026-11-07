@@ -20,7 +20,7 @@ function StartCaseCard() {
 }
 
 /** The public, endless feed of cases to judge. Readable signed out; voting asks you to sign in. */
-export function CaseFeed({ emptyHint }: { emptyHint?: string }) {
+export function CaseFeed({ emptyHint, exclude }: { emptyHint?: string; exclude?: string }) {
   const { ready, authenticated, getAccessToken } = usePrivy();
   const feed = useInfiniteQuery({
     queryKey: ["feed", authenticated],
@@ -57,7 +57,7 @@ export function CaseFeed({ emptyHint }: { emptyHint?: string }) {
   if (feed.isLoading || !ready) return <div className="py-10"><Loading size="lg" label="Gathering cases…" /></div>;
   if (feed.isError) return <p className="tile p-4">Couldn&apos;t load cases. Pull down or refresh to try again.</p>;
 
-  const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
+  const items = (feed.data?.pages.flatMap((p) => p.items) ?? []).filter((it) => it.caseId !== exclude);
   if (items.length === 0) {
     return (
       <div className="flex flex-col gap-4">

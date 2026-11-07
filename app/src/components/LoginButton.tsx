@@ -23,7 +23,7 @@ export function LoginButton() {
   return (
     <div className="flex flex-wrap justify-center gap-3">
       <Link href="/new" className="btn"><Gavel /> Start a case</Link>
-      <Link href="/jury?join=1" className="btn bg-white">Be a juror</Link>
+      <Link href="/cases?join=1" className="btn bg-white">Be a juror</Link>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { inviteLink, loadInviteKey } from "@/lib/inviteStore";
 import { network } from "@/lib/network";
 import { wagmiConfig } from "@/lib/wagmi";
 import { KeeperBanner } from "@/components/KeeperBanner";
+import { CaseFeed } from "@/components/CaseFeed";
 import { useKeeperPoke, useKeeperStatus } from "@/hooks/useKeeper";
 import { VotePanel } from "./VotePanel";
 import { CrowdBar } from "@/components/CaseCard";
@@ -112,6 +113,12 @@ export function CaseView() {
 
       {(isA || isB) && t && <PrivacyControls caseId={caseId} isPublic={t.isPublic} removalRequested={t.removalRequested} />}
       <ReportCase caseId={caseId} />
+
+      {/* Never a dead end: keep judging. */}
+      <section className="mt-6 flex flex-col gap-4 border-t-[3px] border-ink/10 pt-6">
+        <h2 className="font-display text-2xl font-extrabold">More cases to judge</h2>
+        <CaseFeed exclude={caseId.toString()} emptyHint="That's every case for now. New ones land here as people bring them." />
+      </section>
     </Page>
   );
 }

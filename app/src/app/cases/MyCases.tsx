@@ -106,7 +106,7 @@ function CaseList() {
         <Hint>No cases yet. Start one, or join the jury pool to judge others.</Hint>
         <div className="flex gap-2">
           <Link href="/new" className="btn">Start a case</Link>
-          <Link href="/jury" className="btn bg-white">Be a juror</Link>
+          <Link href="/cases?join=1" className="btn bg-white">Be a juror</Link>
         </div>
       </div>
     );

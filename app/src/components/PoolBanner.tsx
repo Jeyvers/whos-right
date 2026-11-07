@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { CaseFeed } from "@/components/CaseFeed";
-import { Gate } from "@/components/Gate";
 import { Loading, Spinner } from "@/components/Loading";
-import { ErrorNote, Page } from "@/components/ui";
+import { ErrorNote } from "@/components/ui";
+import { VerifyPrompt } from "@/components/Gate";
 import { useMe } from "@/hooks/useMe";
 import { useNow } from "@/hooks/useNow";
 import { useTx } from "@/hooks/useTx";
@@ -18,20 +17,10 @@ import { friendlyError } from "@/lib/errors";
 import { network } from "@/lib/network";
 
 /**
- * Be a juror: arriving from the "Be a juror" button (?join=1) adds you to the pool right away; then you're
- * straight into the feed, with any case you've been drawn for pinned on top.
+ * Jury pool status for the judging page: join (automatically when arriving via "Be a juror", ?join=1) or leave,
+ * plus the cases you've been drawn for, pinned above the feed.
  */
-export function JuryHome() {
-  return (
-    <Page>
-      <Gate>
-        <JuryBody />
-      </Gate>
-    </Page>
-  );
-}
-
-function JuryBody() {
+export function PoolBanner() {
   const me = useMe();
   const sendTx = useTx();
   const autoJoin = useSearchParams().get("join") === "1";
@@ -85,6 +74,7 @@ function JuryBody() {
   }, [autoJoin, me.ready, me.inPool]);
 
   if (!me.ready) return <Loading label="Checking your wallet…" />;
+  if (!me.verified && !network.testnet && !inPool) return <VerifyPrompt />;
 
   if (joining && !inPool) {
     return (
@@ -96,11 +86,11 @@ function JuryBody() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {inPool ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border-[3px] border-ink bg-court px-4 py-3 text-white shadow-[0_4px_0_0_var(--color-ink)]">
           <p className="font-display text-lg font-extrabold">You&apos;re in the jury pool ✓</p>
-          <p className="text-sm text-white/80">When you&apos;re drawn, your case is pinned here. Meanwhile, judge these.</p>
+          <p className="text-sm text-white/80">When you&apos;re drawn, your case is pinned here. Meanwhile, judge the cases below.</p>
           <button className="ml-auto text-sm text-white/70 underline underline-offset-4" disabled={joining} onClick={leave}>
             {joining ? "Leaving…" : "Leave the pool"}
           </button>
@@ -116,15 +106,13 @@ function JuryBody() {
       )}
       <ErrorNote>{error}</ErrorNote>
       <JuryDuty />
-      <h2 className="font-display text-2xl font-extrabold">Who&apos;s right here?</h2>
-      <CaseFeed emptyHint="No cases to judge right now. You'll be pinged here when you're drawn." />
     </div>
   );
 }
 
 /** Cases you've been drawn for that still need you, pinned above the feed. Hidden when there are none. */
 const SCAN = 50;
-function JuryDuty() {
+export function JuryDuty() {
   const { address } = useAccount();
   const now = useNow(30_000);
   const wr = network.whosRight!;
