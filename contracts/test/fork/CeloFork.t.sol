@@ -100,13 +100,13 @@ contract CeloForkTest is Test {
         (bool ok, bytes memory ret) = address(GD).staticcall(abi.encodeWithSignature("decimals()"));
         assertTrue(ok);
         assertEq(abi.decode(ret, (uint8)), 18);
-        assertEq(wr.MAX_CASE_FEE(), 10_000 * 1e18);
+        assertEq(wr.MAX_CASE_FEE(), 1_000 * 1e18);
     }
 
     function test_Fork_FullFlowWithRealGoodDollarAndIdentity() public {
         uint256 balA = GD.balanceOf(partyA);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, partyB);
         vm.prank(partyB);
         wr.joinCase(caseId, keccak256("B"), WhosRight.Speed.Standard, FEE, sig);
@@ -141,6 +141,44 @@ contract CeloForkTest is Test {
         assertEq(GD.balanceOf(address(wr)), 0);
     }
 
+    /// One-sided with real G$ and real verified humans: only A pays, no join, jury says Wrong, pot to revealers.
+    function test_Fork_OneSidedWithRealGoodDollar() public {
+        vm.prank(UBI_SCHEME);
+        GD.transfer(partyA, 300e18); // the Fast fee is more than setUp's 2 x Standard funding
+        uint256 balA = GD.balanceOf(partyA);
+        vm.prank(partyA);
+        uint256 caseId = wr.openCase(WhosRight.Speed.Fast, WhosRight.Mode.OneSided, keccak256("A only"), address(0));
+        uint256 fee = wr.getCase(caseId).fee;
+        assertEq(GD.balanceOf(partyA), balA - fee, "only A pays");
+        assertEq(GD.balanceOf(address(wr)), fee);
+
+        wr.requestJury(caseId); // no join step
+        rng.fulfill(wr.getCase(caseId).randomnessId, keccak256("fork-one-sided"));
+        wr.drawJury(caseId);
+        address[] memory j = wr.getJurors(caseId);
+        assertEq(j.length, 5);
+        for (uint256 i; i < 5; ++i) {
+            assertTrue(j[i] != partyA);
+            bytes32 commitment = wr.computeCommitment(caseId, j[i], i < 3 ? 2 : 1, bytes32(i + 100));
+            vm.prank(j[i]); // after the view call, so the prank applies to commitVote
+            wr.commitVote(caseId, commitment);
+        }
+        for (uint256 i; i < 5; ++i) {
+            vm.prank(j[i]);
+            wr.revealVote(caseId, i < 3 ? 2 : 1, bytes32(i + 100));
+        }
+        wr.finalize(caseId);
+        assertEq(uint8(wr.getCase(caseId).verdict), uint8(WhosRight.Verdict.PartyB), "Wrong");
+        for (uint256 i; i < 5; ++i) {
+            uint256 before = GD.balanceOf(j[i]);
+            vm.prank(j[i]);
+            wr.withdraw();
+            assertEq(GD.balanceOf(j[i]) - before, fee / 5);
+        }
+        assertEq(GD.balanceOf(address(wr)), 0);
+        assertEq(wr.owed(address(0)), 0);
+    }
+
     function test_Fork_RealConnectedWalletIsSamePerson() public {
         // partyA connects a fresh wallet on the REAL Identity contract; it resolves to partyA and cannot be B.
         address alt = makeAddr("alt");
@@ -150,7 +188,7 @@ contract CeloForkTest is Test {
 
         _fund(alt);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, alt);
         vm.prank(alt);
         vm.expectRevert(WhosRight.SameIdentity.selector);

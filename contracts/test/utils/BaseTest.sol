@@ -103,7 +103,7 @@ abstract contract BaseTest is Test {
 
     function _openSpeed(WhosRight.Speed speed) internal returns (uint256 caseId) {
         vm.prank(alice);
-        caseId = wr.openCase(speed, CONTENT_A, inviteSigner);
+        caseId = wr.openCase(speed, WhosRight.Mode.TwoSided, CONTENT_A, inviteSigner);
     }
 
     /// @dev Joins with the terms read from the case, as B's client would after showing them.

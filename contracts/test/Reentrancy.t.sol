@@ -35,7 +35,7 @@ contract HookAttacker {
     }
 
     function openCase(bytes32 content, address signer) external returns (uint256) {
-        return wr.openCase(WhosRight.Speed.Standard, content, signer);
+        return wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, content, signer);
     }
 
     function commit(uint256 caseId, bytes32 c) external {
@@ -65,7 +65,8 @@ contract HookAttacker {
         _try(abi.encodeCall(WhosRight.withdraw, ()));
         _try(abi.encodeCall(WhosRight.cancelExpired, (targetCase)));
         _try(abi.encodeCall(WhosRight.finalize, (targetCase)));
-        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, keccak256("x"), address(1))));
+        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("x"), address(1))));
+        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, WhosRight.Mode.OneSided, keccak256("y"), address(0))));
         armed = true;
     }
 
@@ -89,8 +90,8 @@ contract ReentrancyTest is BaseTest {
     function test_Reentrancy_DepositHookCannotReenter() public {
         attacker.arm(true, 1);
         uint256 caseId = attacker.openCase(CONTENT_A, inviteSigner); // tokensToSend fires during pull
-        assertEq(attacker.reentryAttempts(), 4);
-        assertEq(attacker.reentryBlocked(), 4);
+        assertEq(attacker.reentryAttempts(), 5);
+        assertEq(attacker.reentryBlocked(), 5);
         assertEq(wr.getCase(caseId).depositA, FEE);
         assertEq(wr.caseCount(), 1);
     }
@@ -104,7 +105,7 @@ contract ReentrancyTest is BaseTest {
         uint256 before = gd.balanceOf(address(attacker));
         attacker.arm(true, caseId);
         attacker.withdraw(); // tokensReceived fires during payout
-        assertEq(attacker.reentryBlocked(), 4);
+        assertEq(attacker.reentryBlocked(), 5);
         assertEq(gd.balanceOf(address(attacker)) - before, FEE, "paid exactly once");
         assertEq(gd.balanceOf(address(wr)), 2 * FEE, "other escrow untouched");
         assertEq(wr.totalEscrowed() + wr.totalOwed(), gd.balanceOf(address(wr)));

@@ -43,7 +43,10 @@ contract Handler is Test {
         address a = parties[bound(p, 0, parties.length - 1)];
         uint256 before = gd.balanceOf(address(wr));
         vm.prank(a);
-        try wr.openCase(WhosRight.Speed(p % 2), keccak256(abi.encode(p)), vm.addr(INVITE_PK)) {
+        // Both modes: one-sided cases skip the join step and go straight to the jury.
+        WhosRight.Mode mode = WhosRight.Mode((p / 2) % 2);
+        address invite = mode == WhosRight.Mode.TwoSided ? vm.addr(INVITE_PK) : address(0);
+        try wr.openCase(WhosRight.Speed(p % 2), mode, keccak256(abi.encode(p)), invite) {
             ghostDeposited += gd.balanceOf(address(wr)) - before;
             nOpened++;
         } catch {}

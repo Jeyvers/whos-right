@@ -178,8 +178,8 @@ contract SpeedTest is BaseTest {
         uint256 fastCase = _openSpeed(FAST);
 
         vm.startPrank(owner);
-        wr.setSpeedFee(STANDARD, 2_000e18);
-        wr.setSpeedFee(FAST, 9_000e18);
+        wr.setSpeedFee(STANDARD, 600e18);
+        wr.setSpeedFee(FAST, 900e18);
         vm.stopPrank();
 
         // B still sees and pays the fee locked at creation.
@@ -200,9 +200,9 @@ contract SpeedTest is BaseTest {
         // New cases use the new fees; windows are fixed presets.
         WhosRight.Case memory n1 = wr.getCase(_openSpeed(STANDARD));
         WhosRight.Case memory n2 = wr.getCase(_openSpeed(FAST));
-        assertEq(n1.fee, 2_000e18);
+        assertEq(n1.fee, 600e18);
         assertEq(n1.commitWindow, 6 hours);
-        assertEq(n2.fee, 9_000e18);
+        assertEq(n2.fee, 900e18);
         assertEq(n2.commitWindow, 1 hours);
     }
 
@@ -231,14 +231,14 @@ contract SpeedTest is BaseTest {
     function test_FeeCap_AppliesToBothSpeeds() public {
         vm.startPrank(owner);
         vm.expectRevert(WhosRight.InvalidFee.selector);
-        wr.setSpeedFee(FAST, 10_000e18 + 1);
+        wr.setSpeedFee(FAST, 1_000e18 + 1);
         vm.expectRevert(WhosRight.InvalidFee.selector);
-        wr.setSpeedFee(STANDARD, 10_000e18 + 1);
-        wr.setSpeedFee(FAST, 10_000e18);
+        wr.setSpeedFee(STANDARD, 1_000e18 + 1);
+        wr.setSpeedFee(FAST, 1_000e18);
         vm.stopPrank();
 
         WhosRight.Config memory cfg = _config(5, 7);
-        cfg.fastFee = 10_000e18 + 1;
+        cfg.fastFee = 1_000e18 + 1;
         vm.expectRevert(WhosRight.InvalidFee.selector);
         new WhosRight(cfg);
     }

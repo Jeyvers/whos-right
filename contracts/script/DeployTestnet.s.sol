@@ -15,6 +15,8 @@ import {TestnetIdentity} from "../src/testnet/TestnetIdentity.sol";
 ///   cast wallet import whos-right --interactive
 ///   forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whos-right --broadcast
 /// Optional env overrides: JURY_SIZE, MIN_POOL_SIZE, JOIN_WINDOW, DRAW_WINDOW
+/// Reuse existing testnet stand-ins (keeps testers' tG$ and self-verification) instead of deploying new ones:
+///   TESTNET_TOKEN, TESTNET_IDENTITY, TESTNET_RANDOMNESS
 /// (fees and voting windows are fixed presets; the owner can later change fees within the cap)
 contract DeployTestnet is Script {
     uint256 internal constant CELO_SEPOLIA = 11142220;
@@ -25,9 +27,13 @@ contract DeployTestnet is Script {
         vm.startBroadcast();
         // Owner = the broadcasting account (from --account), read explicitly.
         (, address deployer,) = vm.readCallers();
-        TestnetGoodDollar token = new TestnetGoodDollar();
-        TestnetIdentity identity = new TestnetIdentity();
-        InsecureTestnetRandomness rng = new InsecureTestnetRandomness();
+        address tokenAddr = vm.envOr("TESTNET_TOKEN", address(0));
+        address identityAddr = vm.envOr("TESTNET_IDENTITY", address(0));
+        address rngAddr = vm.envOr("TESTNET_RANDOMNESS", address(0));
+        TestnetGoodDollar token = tokenAddr == address(0) ? new TestnetGoodDollar() : TestnetGoodDollar(tokenAddr);
+        TestnetIdentity identity = identityAddr == address(0) ? new TestnetIdentity() : TestnetIdentity(identityAddr);
+        InsecureTestnetRandomness rng =
+            rngAddr == address(0) ? new InsecureTestnetRandomness() : InsecureTestnetRandomness(rngAddr);
         wr = new WhosRight(
             WhosRight.Config({
                 token: IERC20(address(token)),

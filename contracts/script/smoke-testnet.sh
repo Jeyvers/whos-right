@@ -62,7 +62,7 @@ step "A opens a FAST case with a one-time invite key"
 need_fee $A "$(call $WR 'speedFee(uint8)(uint256)' 1 | awk '{print $1}')"
 INV_PK=$(cast wallet new --json | python3 -I -c "import json,sys; print(json.load(sys.stdin)['data'][0]['private_key'])")
 INV=$(cast wallet address --private-key "$INV_PK")
-tx $A $WR "openCase(uint8,bytes32,address)" 1 "$(cast keccak 'smoke: argument A')" "$INV"
+tx $A $WR "openCase(uint8,uint8,bytes32,address)" 1 0 "$(cast keccak 'smoke: argument A')" "$INV"
 CASE=$(call $WR 'caseCount()(uint256)' | awk '{print $1}')
 echo "caseId $CASE"
 

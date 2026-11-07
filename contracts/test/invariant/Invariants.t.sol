@@ -28,6 +28,11 @@ contract InvariantTest is BaseTest {
     }
 
     /// Every G$ held is accounted for: escrow of live cases + amounts owed. No stuck or missing funds.
+    /// One-sided cases have no party B (address 0); nothing may ever be credited there.
+    function invariant_NothingCreditedToZeroAddress() public view {
+        assertEq(wr.owed(address(0)), 0);
+    }
+
     function invariant_BalanceMatchesLiabilities() public view {
         assertEq(gd.balanceOf(address(wr)), wr.totalEscrowed() + wr.totalOwed());
         assertEq(gd.balanceOf(address(wr)), handler.ghostDeposited() - handler.ghostWithdrawn());
