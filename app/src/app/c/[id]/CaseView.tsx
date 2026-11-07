@@ -17,6 +17,8 @@ import { formatG } from "@/lib/format";
 import { inviteLink, loadInviteKey } from "@/lib/inviteStore";
 import { network } from "@/lib/network";
 import { wagmiConfig } from "@/lib/wagmi";
+import { KeeperBanner } from "@/components/KeeperBanner";
+import { useKeeperPoke, useKeeperStatus } from "@/hooks/useKeeper";
 import { VotePanel } from "./VotePanel";
 
 export function CaseView() {
@@ -26,6 +28,10 @@ export function CaseView() {
   const now = useNow();
   const { c, jurors, myVote, randomnessReady, isLoading, refetch } = useCase(caseId);
   const text = useCaseText(caseId);
+  const waitingOnKeeper = Boolean(
+    c && (c.status === 2 || c.status === 3 || c.status === 4 || (c.status === 1 && now > Number(c.joinDeadline))),
+  );
+  useKeeperPoke(waitingOnKeeper);
 
   if (!caseId) return <Page><Title>Case not found</Title></Page>;
   if (isLoading || !c) return <Page><Hint>Loading case…</Hint></Page>;
@@ -79,6 +85,7 @@ export function CaseView() {
 
       {isJuror && c.status === 4 && caseId && <VotePanel caseId={caseId} c={c} jurors={jurors} myVote={myVote!} onDone={refetch} />}
 
+      {waitingOnKeeper && <KeeperBanner />}
       <StagePanel caseId={caseId} c={c} jurors={jurors} randomnessReady={randomnessReady} isA={isA} now={now} onDone={refetch} />
 
       {(isA || isB) && t && <PrivacyControls caseId={caseId} isPublic={t.isPublic} removalRequested={t.removalRequested} />}
@@ -147,7 +154,11 @@ function StagePanel(props: {
       {busy === label ? "Working…" : label}
     </button>
   );
-  const keeperNote = <Hint>Anyone can press this. Soon it will happen automatically.</Hint>;
+  const keeper = useKeeperStatus().data;
+  const auto = keeper?.configured && keeper.healthy && !keeper.capped;
+  const keeperNote = (
+    <Hint>{auto ? "This happens automatically within a minute. You can also press it now." : "Anyone can press this."}</Hint>
+  );
 
   let body: React.ReactNode = null;
   if (c.status === 1) {

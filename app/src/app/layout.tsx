@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Nunito } from "next/font/google";
 import Link from "next/link";
+import { connection } from "next/server";
 import { HeaderNav } from "@/components/HeaderNav";
 import { Scales } from "@/components/Scales";
 import { Providers } from "./providers";
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
   description: "Settle an argument with a jury of real people. 18+.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  await connection(); // render per request so the CSP nonce applies (src/proxy.ts)
   return (
     <html lang="en" className={`${bricolage.variable} ${nunito.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">

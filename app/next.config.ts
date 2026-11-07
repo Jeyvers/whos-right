@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
+// Every page is rendered per request so it can carry a fresh CSP nonce (see src/proxy.ts).
+// Partial prerendering is incompatible with nonce-based CSP, so it stays off.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {

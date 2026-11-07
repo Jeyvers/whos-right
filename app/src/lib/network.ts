@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import { fallback, http, type Address } from "viem";
 import { celo, celoSepolia } from "viem/chains";
 
 /**
@@ -27,6 +27,8 @@ export type NetworkConfig = {
   goodDollar: Address;
   /** The Identity contract the contract checks. */
   identity: Address;
+  /** RPC endpoints, tried in order (public RPCs go down; never rely on just one). */
+  rpcUrls: string[];
   /** Display symbol for the fee token. */
   tokenSymbol: string;
   testnet?: TestnetStandIns;
@@ -40,6 +42,11 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     whosRight: "0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b",
     goodDollar: "0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36",
     identity: "0x71386420228BF609FA916EE1B676f3A81c803B2F",
+    rpcUrls: [
+      "https://forno.celo-sepolia.celo-testnet.org",
+      "https://celo-sepolia.drpc.org",
+      "https://rpc.ankr.com/celo_sepolia",
+    ],
     tokenSymbol: "tG$",
     testnet: {
       faucetToken: "0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36",
@@ -53,6 +60,7 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     whosRight: undefined, // set after the approved mainnet deploy (Phase 6)
     goodDollar: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
     identity: "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42",
+    rpcUrls: ["https://forno.celo.org", "https://celo.drpc.org", "https://rpc.ankr.com/celo"],
     tokenSymbol: "G$",
   },
 };
@@ -68,3 +76,8 @@ function resolveNetwork(): NetworkConfig {
 }
 
 export const network = resolveNetwork();
+
+/** viem transport that fails over between the network's RPCs. */
+export function rpcTransport() {
+  return fallback(network.rpcUrls.map((url) => http(url, { retryCount: 1, timeout: 10_000 })));
+}

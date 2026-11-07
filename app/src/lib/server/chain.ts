@@ -1,10 +1,10 @@
 import "server-only";
-import { createPublicClient, http, type Address } from "viem";
+import { createPublicClient, type Address } from "viem";
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import type { ChainCase } from "@/lib/cases";
-import { network } from "@/lib/network";
+import { network, rpcTransport } from "@/lib/network";
 
-export const publicClient = createPublicClient({ chain: network.chain, transport: http() });
+export const publicClient = createPublicClient({ chain: network.chain, transport: rpcTransport() });
 
 function contract(): Address {
   if (!network.whosRight) throw new Error(`WhosRight is not deployed on ${network.label}`);

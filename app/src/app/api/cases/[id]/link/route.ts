@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { network } from "@/lib/network";
+import { runKeeper } from "@/lib/server/keeper";
 import { sameAddress } from "@/lib/cases";
 import { readCase } from "@/lib/server/chain";
 import { authenticate } from "@/lib/server/privy";
@@ -33,5 +35,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/
     const { error } = await db().from("sides").update({ case_id: caseId.toString(), role }).eq("id", side.id);
     if (error) return bad("Couldn't link your side. Try again.", 500);
   }
+  // B just joined: call the jury right away instead of waiting for the next scheduled run.
+  if (role === "B") after(() => runKeeper("joined").catch(() => {}));
   return Response.json({ ok: true, role });
 }
