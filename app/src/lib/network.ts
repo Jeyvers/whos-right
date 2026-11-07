@@ -39,7 +39,7 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     name: "celo-sepolia",
     label: "Celo Sepolia (test)",
     chain: celoSepolia,
-    whosRight: "0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b",
+    whosRight: "0x94a36d3437daA547c25c4Bf41907dD891e196d14", // v2 (one-sided cases), deployed 2026-11-07
     goodDollar: "0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36",
     identity: "0x71386420228BF609FA916EE1B676f3A81c803B2F",
     rpcUrls: [

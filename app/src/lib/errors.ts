@@ -34,6 +34,8 @@ export function friendlyError(e: unknown): string {
       if (name) return `The contract refused: ${name}.`;
     }
     if (/insufficient funds/i.test(e.message)) return "Not enough CELO for the network fee (gas).";
+    // Some RPCs don't pass the revert reason back; don't show the raw transaction dump.
+    if (/execution reverted/i.test(e.message)) return "That didn't go through. The case may have just moved on; refresh to see where it is.";
     return e.shortMessage;
   }
   return e instanceof Error ? e.message : "Something went wrong.";

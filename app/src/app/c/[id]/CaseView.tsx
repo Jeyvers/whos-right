@@ -152,22 +152,28 @@ function StagePanel(props: {
   randomnessReady: boolean;
   isA: boolean;
   now: number;
-  onDone: () => void;
+  onDone: () => Promise<{ data?: readonly unknown[] }>;
 }) {
   const { caseId, c, jurors, randomnessReady, isA, now, onDone } = props;
   const sendTx = useTx();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
+  const [note, setNote] = useState<string>();
   const wr = network.whosRight!;
 
   async function run(label: string, fn: () => Promise<unknown>) {
     setBusy(label);
     setError(undefined);
+    setNote(undefined);
+    const before = c.status;
     try {
       await fn();
-      onDone();
+      void onDone();
     } catch (e) {
-      setError(friendlyError(e));
+      // Often a race: the keeper (or someone else) did this step a moment earlier. Re-check before calling it an error.
+      const fresh = (await onDone().catch(() => undefined))?.data?.[0] as ChainCase | undefined;
+      if (fresh && fresh.status !== before) setNote("Already done: this step happened automatically a moment ago.");
+      else setError(friendlyError(e));
     } finally {
       setBusy(undefined);
     }
@@ -240,6 +246,7 @@ function StagePanel(props: {
   return (
     <Panel>
       {body}
+      {note && <Hint>{note}</Hint>}
       <ErrorNote>{error}</ErrorNote>
     </Panel>
   );
