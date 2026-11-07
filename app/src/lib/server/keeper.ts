@@ -5,6 +5,7 @@ import { whosRightAbi } from "@/lib/abi/whosRight";
 import { identityAbi } from "@/lib/abi/tokens";
 import type { ChainCase } from "@/lib/cases";
 import { decide, type Action } from "@/lib/keeperRules";
+import { alertJurorsFor } from "./notify";
 import { dataKey, network, rpcTransport } from "@/lib/network";
 import { publicClient } from "./chain";
 import { db } from "./supabase";
@@ -149,6 +150,8 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
       }
       const atCursor = cursorMovable;
       cursorMovable = false;
+      // Juror alerts (read-only; never blocks or fails the run).
+      if (c.status === 4) await alertJurorsFor(id, c, jurors, now).catch(() => {});
       const action = decide(c, jurors.length, ready, now, poolReady);
       if (!action) continue;
       if (action === "requestJury" && budgetLow) continue;

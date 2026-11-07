@@ -14,6 +14,7 @@ import { network } from "@/lib/network";
 import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { SelfCustody } from "./SelfCustody";
 import { ClaimPanel } from "@/components/ClaimPanel";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { Spinner } from "@/components/Loading";
 
 export function AccountHome() {
@@ -88,6 +89,7 @@ function AccountBody() {
       </Panel>
 
       <ClaimPanel />
+      <NotificationsPanel />
       <SelfCustody />
 
       <Panel>

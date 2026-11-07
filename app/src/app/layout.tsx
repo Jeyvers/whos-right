@@ -15,6 +15,7 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Who's Right?",
   description: "Settle an argument with a jury of real people. 18+.",
+  manifest: "/manifest.webmanifest", // lets phones "Add to Home Screen" (needed for push on iPhone)
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

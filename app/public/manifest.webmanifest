@@ -1,0 +1,10 @@
+{
+  "name": "Who's Right?",
+  "short_name": "Who's Right?",
+  "description": "Settle an argument with a jury of real people. 18+.",
+  "start_url": "/cases",
+  "display": "standalone",
+  "background_color": "#F3EEFF",
+  "theme_color": "#3D1E8C",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

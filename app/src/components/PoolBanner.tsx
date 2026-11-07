@@ -7,6 +7,7 @@ import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { Loading, Spinner } from "@/components/Loading";
 import { ErrorNote } from "@/components/ui";
 import { VerifyPrompt } from "@/components/Gate";
+import { AlertsNudge } from "@/components/NotificationsPanel";
 import { useMe } from "@/hooks/useMe";
 import { useNow } from "@/hooks/useNow";
 import { useTx } from "@/hooks/useTx";
@@ -91,6 +92,7 @@ export function PoolBanner() {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border-[3px] border-ink bg-court px-4 py-3 text-white shadow-[0_4px_0_0_var(--color-ink)]">
           <p className="font-display text-lg font-extrabold">You&apos;re in the jury pool ✓</p>
           <p className="text-sm text-white/80">When you&apos;re drawn, your case is pinned here. Meanwhile, judge the cases below.</p>
+          <div className="w-full"><AlertsNudge /></div>
           <button className="ml-auto text-sm text-white/70 underline underline-offset-4" disabled={joining} onClick={leave}>
             {joining ? "Leaving…" : "Leave the pool"}
           </button>
