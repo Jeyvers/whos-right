@@ -1,11 +1,8 @@
 -- Keeper run log, failure log, and a watchdog that alerts you. Run once in the SQL editor.
 -- The watchdog runs INSIDE Supabase (pg_cron), so it still alerts if the app or Vercel is down.
 --
--- Before running, replace <ALERT_WEBHOOK_URL> with where alerts should go. Supported as-is:
---   Discord: a channel webhook URL (https://discord.com/api/webhooks/...)
---   Slack:   an incoming-webhook URL (https://hooks.slack.com/services/...)
---   Telegram: https://api.telegram.org/bot<BOT_TOKEN>/sendMessage?chat_id=<CHAT_ID>
--- It is stored in Supabase Vault, not in this job's text.
+-- Alerts go to Telegram. Before running, replace <TELEGRAM_BOT_TOKEN> and <TELEGRAM_CHAT_ID>.
+-- Both are stored in Supabase Vault, not in the job's text.
 
 create table if not exists public.keeper_runs (
   id bigserial primary key,
@@ -57,7 +54,8 @@ declare
   msgs text[] := '{}';
   kinds text[] := '{}';
   i int;
-  url text;
+  bot text;
+  chat text;
 begin
   -- 1. No run for 10 minutes (any finished run counts; the schedule is every minute)
   select max(finished_at) into last_ok from keeper_runs where network = p_network;
@@ -96,14 +94,15 @@ begin
   end if;
 
   -- Send each problem at most once an hour.
-  select decrypted_secret into url from vault.decrypted_secrets where name = 'keeper_alert_webhook';
+  select decrypted_secret into bot from vault.decrypted_secrets where name = 'telegram_bot_token';
+  select decrypted_secret into chat from vault.decrypted_secrets where name = 'telegram_chat_id';
   for i in 1 .. coalesce(array_length(kinds, 1), 0) loop
     if not exists (select 1 from keeper_alerts where network = p_network and kind = kinds[i]
                    and last_sent_at > now() - interval '1 hour') then
-      if url is not null then
+      if bot is not null and chat is not null then
         perform net.http_post(
-          url := url,
-          body := jsonb_build_object('content', '⚖️ Who''s Right? (' || p_network || '): ' || msgs[i],
+          url := 'https://api.telegram.org/bot' || bot || '/sendMessage',
+          body := jsonb_build_object('chat_id', chat,
                                      'text', '⚖️ Who''s Right? (' || p_network || '): ' || msgs[i]),
           headers := '{"content-type": "application/json"}'::jsonb
         );
@@ -121,7 +120,8 @@ begin
 end $$;
 revoke all on function public.keeper_watchdog(text) from public, anon, authenticated;
 
-select vault.create_secret('<ALERT_WEBHOOK_URL>', 'keeper_alert_webhook');
+select vault.create_secret('<TELEGRAM_BOT_TOKEN>', 'telegram_bot_token');
+select vault.create_secret('<TELEGRAM_CHAT_ID>', 'telegram_chat_id');
 select cron.schedule('whos-right-keeper-watchdog', '*/5 * * * *', $$ select public.keeper_watchdog('celo-sepolia'); $$);
 
 -- Try it now (returns the current problems, or 'all good'):

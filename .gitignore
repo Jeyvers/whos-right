@@ -26,3 +26,6 @@ keystore/
 
 # Throwaway testnet smoke-test wallets (private keys) - never commit
 .smoke/
+
+# SQL to run by hand (may contain secrets). Never committed; deleted after running.
+app/supabase/local/
