@@ -78,6 +78,13 @@ function resolveNetwork(): NetworkConfig {
 export const network = resolveNetwork();
 
 /**
+ * Key for everything stored per CONTRACT (case text, flags, votes, crowd votes, keeper progress, invite keys):
+ * the network plus the WhosRight address. A redeploy starts at case #1 again, so this keeps a new contract's
+ * cases from ever mixing with an old one's. Per-wallet things (gas top-up limits, keeper spend) stay per network.
+ */
+export const dataKey = `${network.name}:${(network.whosRight ?? "undeployed").toLowerCase()}`;
+
+/**
  * viem transport across the network's public RPCs. `rank` keeps re-measuring them and prefers the fastest, most
  * reliable one, so a slow or flaky node (forno has had outages) doesn't stall every call.
  */

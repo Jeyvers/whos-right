@@ -1,4 +1,4 @@
-import { network } from "@/lib/network";
+import { dataKey } from "@/lib/network";
 import { authenticate } from "@/lib/server/privy";
 import { db } from "@/lib/server/supabase";
 import { bad, parseCaseId } from "@/lib/server/http";
@@ -13,7 +13,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/
   if (!text) return bad("Say briefly what's wrong.");
   const { error } = await db()
     .from("reports")
-    .insert({ network: network.name, case_id: caseId.toString(), reporter_user_id: user.userId, reason: text });
+    .insert({ network: dataKey, case_id: caseId.toString(), reporter_user_id: user.userId, reason: text });
   if (error) return bad("Couldn't send your report. Try again.", 500);
   return Response.json({ ok: true });
 }

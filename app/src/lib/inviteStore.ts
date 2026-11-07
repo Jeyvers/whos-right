@@ -1,8 +1,8 @@
 import type { Hex } from "viem";
-import { network } from "./network";
+import { dataKey } from "./network";
 
 /** The invite key lives only in A's browser (and the link A shares). We never send it to the server. */
-const key = (caseId: bigint | string) => `wr:invite:${network.name}:${caseId}`;
+const key = (caseId: bigint | string) => `wr:invite:${dataKey}:${caseId}`;
 
 export function saveInviteKey(caseId: bigint | string, pk: Hex) {
   try {

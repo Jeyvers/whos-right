@@ -1,4 +1,4 @@
-import { network } from "@/lib/network";
+import { dataKey } from "@/lib/network";
 import { sameAddress } from "@/lib/cases";
 import { readCase } from "@/lib/server/chain";
 import { authenticate } from "@/lib/server/privy";
@@ -19,7 +19,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/
     .from("case_flags")
     .upsert(
       {
-        network: network.name,
+        network: dataKey,
         case_id: caseId.toString(),
         removal_requested_at: new Date().toISOString(),
         removal_requested_by: user.userId,

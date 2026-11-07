@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MAX_SIDE_LENGTH, MIN_SIDE_LENGTH } from "@/lib/content";
-import { checkSideText } from "@/lib/textRules";
+import { MAX_SIDE_LENGTH, MAX_TITLE_LENGTH, MIN_SIDE_LENGTH } from "@/lib/content";
+import { checkSideText, checkTitle } from "@/lib/textRules";
 
 /**
  * Errors stay hidden while typing (just a neutral counter); they show in red only after the person
@@ -14,9 +14,11 @@ export function SideEditor(props: {
   label: string;
   attempted?: boolean;
   footnote?: ReactNode;
+  /** One-sided: names and handles are blocked, not just warned about. */
+  strict?: boolean;
 }) {
-  const { value, onChange, label, attempted = false, footnote } = props;
-  const { errors, warnings } = checkSideText(value);
+  const { value, onChange, label, attempted = false, footnote, strict = false } = props;
+  const { errors, warnings } = checkSideText(value, { strict });
   const length = value.trim().length;
   const counter = length < MIN_SIDE_LENGTH ? `${length}/${MIN_SIDE_LENGTH} minimum` : `${length}/${MAX_SIDE_LENGTH}`;
   return (
@@ -49,6 +51,31 @@ export function SideEditor(props: {
       {attempted && errors.map((e) => <p key={e} role="alert" className="text-sm font-semibold text-side-a">{e}</p>)}
       {warnings.map((w) => <p key={w} className="text-sm font-semibold text-amber-700">{w}</p>)}
       {footnote && <p className="text-sm text-ink/50">{footnote}</p>}
+    </div>
+  );
+}
+
+/** The case title: its own short field, checked by the same privacy rules. */
+export function TitleField(props: { value: string; onChange: (v: string) => void; attempted?: boolean; strict?: boolean }) {
+  const { value, onChange, attempted = false, strict = false } = props;
+  const { errors, warnings } = checkTitle(value, { strict });
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="title" className="font-display text-lg font-bold">Title</label>
+      <input
+        id="title"
+        value={value}
+        maxLength={MAX_TITLE_LENGTH}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Chips or sausage: the best breakfast side?"
+        aria-invalid={attempted && errors.length > 0}
+        className={`tile px-4 py-3 font-display text-lg font-bold outline-none placeholder:font-normal placeholder:text-ink/40 focus-visible:ring-4 focus-visible:ring-verdict ${
+          attempted && errors.length > 0 ? "border-side-a" : ""
+        }`}
+      />
+      <p className="text-right text-sm tabular-nums text-ink/60">{value.trim().length}/{MAX_TITLE_LENGTH}</p>
+      {attempted && errors.map((e) => <p key={e} role="alert" className="text-sm font-semibold text-side-a">{e}</p>)}
+      {warnings.map((w) => <p key={w} className="text-sm font-semibold text-amber-700">{w}</p>)}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import type { Address } from "viem";
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import { sameAddress, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import type { FeedItem, FeedPage } from "@/lib/crowd";
-import { network } from "@/lib/network";
+import { dataKey, network } from "@/lib/network";
 import { publicClient } from "./chain";
 import { db } from "./supabase";
 
@@ -40,14 +40,15 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
       allowFailure: false,
     });
     const chain = ids.map((id, i) => ({ id, c: reads[i * 2] as ChainCase, jurors: reads[i * 2 + 1] as readonly Address[] }));
-    const joined = chain.filter(({ c }) => c.status >= 2 && c.partyB !== ZERO_ADDRESS);
+    // Ready for judging: two-sided once B has joined; one-sided as soon as it's opened (no B, status starts at Joined).
+    const joined = chain.filter(({ c }) => c.status >= 2 && (c.mode === 1 || c.partyB !== ZERO_ADDRESS));
     if (joined.length === 0) continue;
     const idStrs = joined.map(({ id }) => id.toString());
 
     const [{ data: sides }, { data: flags }, { data: votes }] = await Promise.all([
-      db().from("sides").select("case_id, role, body, content_hash, public_consent").eq("network", network.name).in("case_id", idStrs),
-      db().from("case_flags").select("case_id, hidden, removal_requested_at").eq("network", network.name).in("case_id", idStrs),
-      db().from("crowd_votes").select("case_id, person, vote").eq("network", network.name).in("case_id", idStrs),
+      db().from("sides").select("case_id, role, body, title, content_hash, public_consent").eq("network", dataKey).in("case_id", idStrs),
+      db().from("case_flags").select("case_id, hidden, removal_requested_at").eq("network", dataKey).in("case_id", idStrs),
+      db().from("crowd_votes").select("case_id, person, vote").eq("network", dataKey).in("case_id", idStrs),
     ]);
 
     for (const { id, c, jurors } of joined) {
@@ -55,7 +56,8 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
       const a = sides?.find((s) => String(s.case_id) === key && s.role === "A" && sameAddress(s.content_hash, c.contentA));
       const b = sides?.find((s) => String(s.case_id) === key && s.role === "B" && sameAddress(s.content_hash, c.contentB));
       const f = flags?.find((x) => String(x.case_id) === key);
-      if (!a?.public_consent || !b?.public_consent || f?.hidden || f?.removal_requested_at) continue;
+      const oneSided = c.mode === 1;
+      if (!a?.public_consent || (!oneSided && !b?.public_consent) || f?.hidden || f?.removal_requested_at) continue;
 
       const caseVotes = votes?.filter((v) => String(v.case_id) === key) ?? [];
       const tally = { a: caseVotes.filter((v) => v.vote === 1).length, b: caseVotes.filter((v) => v.vote === 2).length };
@@ -69,6 +71,8 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
         caseId: key,
         status: c.status,
         speed: c.speed,
+        mode: c.mode,
+        title: a.title ?? "",
         fee: c.fee.toString(),
         verdict: c.verdict,
         votesA: c.votesA,
@@ -80,7 +84,7 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
         commitDeadline: Number(c.commitDeadline),
         revealDeadline: Number(c.revealDeadline),
         sideA: a.body,
-        sideB: b.body,
+        sideB: oneSided ? null : b!.body,
         crowd: official ? tally : null,
         crowdTotal: tally.a + tally.b,
         myVote: mine,

@@ -1,6 +1,6 @@
 import { recoverMessageAddress, type Hex } from "viem";
 import { inviteViewMessage } from "@/lib/inviteView";
-import { network } from "@/lib/network";
+import { dataKey } from "@/lib/network";
 import { sameAddress, ZERO_ADDRESS } from "@/lib/cases";
 import { readCase, readJurors } from "@/lib/server/chain";
 import { authenticate } from "@/lib/server/privy";
@@ -26,22 +26,24 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
   const [{ data: sides }, { data: flags }, { data: crowdRows }] = await Promise.all([
     db()
       .from("sides")
-      .select("body, salt, content_hash, public_consent, role")
-      .eq("network", network.name)
+      .select("body, title, salt, content_hash, public_consent, role")
+      .eq("network", dataKey)
       .eq("case_id", caseId.toString()),
     db()
       .from("case_flags")
       .select("hidden, removal_requested_at")
-      .eq("network", network.name)
+      .eq("network", dataKey)
       .eq("case_id", caseId.toString())
       .maybeSingle(),
-    db().from("crowd_votes").select("person, vote").eq("network", network.name).eq("case_id", caseId.toString()),
+    db().from("crowd_votes").select("person, vote").eq("network", dataKey).eq("case_id", caseId.toString()),
   ]);
   const sideA = sides?.find((s) => s.role === "A" && sameAddress(s.content_hash, c.contentA));
   const sideB = sides?.find((s) => s.role === "B" && sameAddress(s.content_hash, c.contentB));
   const hidden = Boolean(flags?.hidden);
   const removalRequested = Boolean(flags?.removal_requested_at);
-  const isPublic = Boolean(sideA?.public_consent && sideB?.public_consent) && !hidden && !removalRequested;
+  const oneSided = c.mode === 1;
+  // One-sided: there is no B, so A's agreement alone decides. Two-sided: both must have agreed.
+  const isPublic = Boolean(sideA?.public_consent && (oneSided || sideB?.public_consent)) && !hidden && !removalRequested;
 
   let access: Access = "none";
   const user = await authenticate(request);
@@ -54,7 +56,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
   const inviteSig = request.headers.get("x-invite-signature") as Hex | null;
   if (access === "none" && inviteSig && c.status === 1) {
     const signer = await recoverMessageAddress({
-      message: inviteViewMessage(network.name, caseId),
+      message: inviteViewMessage(dataKey, caseId),
       signature: inviteSig,
     }).catch(() => null);
     if (signer && sameAddress(signer, c.inviteSigner)) access = "invite";
@@ -64,6 +66,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
   const canSeeA = access !== "none";
   const canSeeB = access === "party" || access === "juror" || access === "public";
   return Response.json({
+    mode: c.mode,
+    title: canSeeA && sideA ? sideA.title ?? null : null,
     access,
     isPublic,
     hidden,

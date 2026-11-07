@@ -24,7 +24,8 @@ function stageLine(it: FeedItem, now: number): string {
   return "No verdict";
 }
 
-function Side({ side, text, chosen, winner }: { side: "A" | "B"; text: string; chosen: boolean; winner: boolean }) {
+function Side(props: { side: "A" | "B"; label: string; text: string; chosen: boolean; winner: boolean }) {
+  const { side, label, text, chosen, winner } = props;
   const [open, setOpen] = useState(false);
   const long = text.length > 260;
   const color = side === "A" ? "border-side-a" : "border-side-b";
@@ -32,8 +33,8 @@ function Side({ side, text, chosen, winner }: { side: "A" | "B"; text: string; c
   return (
     <div className={`rounded-2xl border-[3px] bg-white p-3 ${color} ${winner ? "ring-4 ring-verdict" : ""}`}>
       <p className="mb-1 flex items-center gap-2 text-sm font-bold">
-        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-ink font-display text-white ${badge}`}>{side}</span>
-        Side {side}
+        <span className={`inline-block h-3 w-3 rounded-full border-2 border-ink ${badge}`} aria-hidden />
+        {label}
         {chosen && <span className="ml-auto rounded-full bg-ink px-2 py-0.5 text-xs text-white">Your pick</span>}
         {winner && <span className="ml-auto rounded-full bg-verdict px-2 py-0.5 text-xs">Jury&apos;s pick</span>}
       </p>
@@ -47,15 +48,15 @@ function Side({ side, text, chosen, winner }: { side: "A" | "B"; text: string; c
   );
 }
 
-export function CrowdBar({ a, b }: { a: number; b: number }) {
+export function CrowdBar({ a, b, labels = ["First", "Theirs"] }: { a: number; b: number; labels?: [string, string] }) {
   const total = a + b;
   if (total === 0) return <p className="text-sm text-ink/60">No crowd votes on this one.</p>;
   const pa = Math.round((a / total) * 100);
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex h-7 overflow-hidden rounded-full border-2 border-ink text-xs font-bold text-white" aria-label={`Crowd: A ${pa}%, B ${100 - pa}%`}>
-        {a > 0 && <div className="flex items-center bg-side-a pl-2" style={{ width: `${pa}%` }}>A {pa}%</div>}
-        {b > 0 && <div className="flex flex-1 items-center justify-end bg-side-b pr-2">B {100 - pa}%</div>}
+      <div className="flex h-7 overflow-hidden rounded-full border-2 border-ink text-xs font-bold text-white" aria-label={`Crowd: ${labels[0]} ${pa}%, ${labels[1]} ${100 - pa}%`}>
+        {a > 0 && <div className="flex items-center bg-side-a pl-2" style={{ width: `${pa}%` }}>{labels[0]} {pa}%</div>}
+        {b > 0 && <div className="flex flex-1 items-center justify-end bg-side-b pr-2">{labels[1]} {100 - pa}%</div>}
       </div>
       <p className="text-xs text-ink/60">The crowd: {total} {total === 1 ? "vote" : "votes"}</p>
     </div>
@@ -67,7 +68,9 @@ export function CaseCard({ it }: { it: FeedItem }) {
   const now = useNow(30_000);
   const { myVote, cast, busy, error } = useCrowdVote(it.caseId, it.myVote);
   const decided = it.status === 5 || it.status === 6;
+  const oneSided = it.mode === 1;
   const winner = it.status === 5 ? (it.verdict === 1 ? "A" : "B") : null;
+  const optionLabel = (v: number) => (oneSided ? (v === 1 ? "Right" : "Wrong") : v === 1 ? "First side" : "Their side");
   const called = calledIt(myVote, it.status, it.verdict);
   const canVote = !decided && !myVote && !it.viewerRole;
 
@@ -83,9 +86,19 @@ export function CaseCard({ it }: { it: FeedItem }) {
         <span className="ml-auto font-semibold text-ink/70">{stageLine(it, now)}</span>
       </header>
 
-      <Side side="A" text={it.sideA} chosen={myVote === 1} winner={winner === "A"} />
-      <div className="-my-1 text-center font-display text-sm font-extrabold text-ink/40" aria-hidden>VS</div>
-      <Side side="B" text={it.sideB} chosen={myVote === 2} winner={winner === "B"} />
+      {it.title && <h3 className="font-display text-xl font-extrabold leading-snug">{it.title}</h3>}
+      {oneSided ? (
+        <>
+          <p className="self-start rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">Only one side of the story</p>
+          <Side side="A" label="Their side" text={it.sideA} chosen={false} winner={false} />
+        </>
+      ) : (
+        <>
+          <Side side="A" label="First side" text={it.sideA} chosen={myVote === 1} winner={winner === "A"} />
+          <div className="-my-1 text-center font-display text-sm font-extrabold text-ink/40" aria-hidden>VS</div>
+          <Side side="B" label="Their side" text={it.sideB ?? ""} chosen={myVote === 2} winner={winner === "B"} />
+        </>
+      )}
 
       {it.viewerRole === "party" && <p className="rounded-xl bg-lilac p-3 text-sm font-semibold">This is your case. Sit tight while the jury decides.</p>}
       {it.viewerRole === "juror" && !decided && (
@@ -94,17 +107,21 @@ export function CaseCard({ it }: { it: FeedItem }) {
 
       {canVote && (
         <div className="flex flex-col gap-2">
-          <p className="text-center font-display font-bold">Who&apos;s right?</p>
+          <p className="text-center font-display font-bold">{oneSided ? "Are they right?" : "Who's right?"}</p>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn bg-side-a text-white" disabled={busy} onClick={() => cast(1)}>{busy ? <Spinner /> : "A is right"}</button>
-            <button className="btn bg-side-b text-white" disabled={busy} onClick={() => cast(2)}>{busy ? <Spinner /> : "B is right"}</button>
+            <button className={`btn text-white ${oneSided ? "bg-side-b" : "bg-side-a"}`} disabled={busy} onClick={() => cast(1)}>
+              {busy ? <Spinner /> : oneSided ? "Right" : "First side"}
+            </button>
+            <button className={`btn text-white ${oneSided ? "bg-side-a" : "bg-side-b"}`} disabled={busy} onClick={() => cast(2)}>
+              {busy ? <Spinner /> : oneSided ? "Wrong" : "Their side"}
+            </button>
           </div>
         </div>
       )}
 
       {myVote && !decided && (
         <p className="rounded-xl bg-lilac p-3 text-sm">
-          <strong>You said {myVote === 1 ? "A" : "B"}.</strong> The crowd&apos;s results show once the jury decides
+          <strong>You said: {optionLabel(myVote)}.</strong> The crowd&apos;s results show once the jury decides
           {it.crowdTotal > 1 ? ` · ${it.crowdTotal} people have weighed in` : ""}.
         </p>
       )}
@@ -112,7 +129,13 @@ export function CaseCard({ it }: { it: FeedItem }) {
       {decided && (
         <div className="flex flex-col gap-2 rounded-2xl bg-court p-3 text-white">
           <p className="font-display text-lg font-extrabold">
-            {winner ? `Jury: Side ${winner} wins ${it.votesA}–${it.votesB}` : "No verdict. Both sides were refunded."}
+            {winner
+              ? oneSided
+                ? `Jury says: ${winner === "A" ? "Right" : "Wrong"}, ${Math.max(it.votesA, it.votesB)}–${Math.min(it.votesA, it.votesB)}`
+                : `Jury: ${winner === "A" ? "first side" : "their side"} wins ${it.votesA}–${it.votesB}`
+              : oneSided
+                ? "No verdict. The fee was refunded."
+                : "No verdict. Both sides were refunded."}
           </p>
           {called !== null && (
             <p className={`self-start rounded-full px-3 py-1 text-sm font-extrabold ${called ? "bg-verdict text-ink" : "bg-white/15"}`}>
@@ -121,7 +144,7 @@ export function CaseCard({ it }: { it: FeedItem }) {
           )}
           {it.crowd && (
             <div className="rounded-xl bg-white p-2 text-ink">
-              <CrowdBar a={it.crowd.a} b={it.crowd.b} />
+              <CrowdBar a={it.crowd.a} b={it.crowd.b} labels={oneSided ? ["Right", "Wrong"] : ["First", "Theirs"]} />
             </div>
           )}
         </div>

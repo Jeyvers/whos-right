@@ -1,7 +1,8 @@
 -- Keeper run log, failure log, and a watchdog that alerts you. Run once in the SQL editor.
 -- The watchdog runs INSIDE Supabase (pg_cron), so it still alerts if the app or Vercel is down.
 --
--- Alerts go to Telegram. Before running, replace <TELEGRAM_BOT_TOKEN> and <TELEGRAM_CHAT_ID>.
+-- Alerts go to Telegram. Before running, replace <TELEGRAM_BOT_TOKEN>, <TELEGRAM_CHAT_ID> and <DATA_KEY>
+-- (<DATA_KEY> = network + WhosRight address, e.g. celo-sepolia:0x94a3...; see dataKey in app/src/lib/network.ts).
 -- Both are stored in Supabase Vault, not in the job's text.
 
 create table if not exists public.keeper_runs (
@@ -122,7 +123,7 @@ revoke all on function public.keeper_watchdog(text) from public, anon, authentic
 
 select vault.create_secret('<TELEGRAM_BOT_TOKEN>', 'telegram_bot_token');
 select vault.create_secret('<TELEGRAM_CHAT_ID>', 'telegram_chat_id');
-select cron.schedule('whos-right-keeper-watchdog', '*/5 * * * *', $$ select public.keeper_watchdog('celo-sepolia'); $$);
+select cron.schedule('whos-right-keeper-watchdog', '*/5 * * * *', $$ select public.keeper_watchdog('<DATA_KEY>'); $$);
 
 -- Try it now (returns the current problems, or 'all good'):
--- select public.keeper_watchdog('celo-sepolia');
+-- select public.keeper_watchdog('<DATA_KEY>');

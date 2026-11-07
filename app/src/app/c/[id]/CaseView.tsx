@@ -58,6 +58,7 @@ export function CaseView() {
       </span>
     );
   const winner = c.status === 5 ? (c.verdict === 1 ? "A" : "B") : null;
+  const oneSided = c.mode === 1;
 
   return (
     <Page>
@@ -66,17 +67,20 @@ export function CaseView() {
           <StatusPill status={status} />
           <span className="text-sm font-semibold text-ink/60">
             Case #{caseId.toString()} · {c.speed === SPEED.Fast ? "Fast" : "Standard"} · {formatG(c.fee)}{" "}
-            {network.tokenSymbol} each
+            {network.tokenSymbol}{oneSided ? "" : " each"}
           </span>
         </div>
-        <Title>{isA || isB ? "Your case" : isJuror ? "You're on this jury" : "The case"}</Title>
+        <p className="text-sm font-bold text-ink/60">
+          {isA || isB ? "Your case" : isJuror ? "You're on this jury" : oneSided ? "Only one side of the story" : "The case"}
+        </p>
+        <Title>{t?.title ?? (oneSided ? "Are they right?" : "Who's right?")}</Title>
       </div>
 
-      {winner && <Verdict c={c} winner={winner} isA={isA} isB={isB} />}
+      {winner && <Verdict c={c} winner={winner} isA={isA} isB={isB} oneSided={oneSided} />}
       {c.status === 6 && (
         <section id="verdict" className="scroll-mt-4">
         <Panel>
-          <p className="font-display text-xl font-extrabold">No verdict. Both sides refunded.</p>
+          <p className="font-display text-xl font-extrabold">{oneSided ? "No verdict. The fee was refunded." : "No verdict. Both sides refunded."}</p>
           <p>{REFUND_REASON[c.refundReason]}</p>
           {(isA || isB) && (
             <Link className="btn self-start" href="/account">Withdraw your refund</Link>
@@ -85,10 +89,17 @@ export function CaseView() {
         </section>
       )}
 
-      <div className="grid gap-4">
-        <SideCard side="A" label={isA ? "Your side" : "Side A"} text={sideText(t?.sideA, "A")} highlight={winner === "A"} />
-        <SideCard side="B" label={isB ? "Your side" : "Side B"} text={sideText(t?.sideB, "B")} highlight={winner === "B"} />
-      </div>
+      {oneSided ? (
+        <div className="grid gap-2">
+          {!isA && <p className="self-start rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">Only one side of the story</p>}
+          <SideCard side="A" label={isA ? "Your side" : "Their side"} text={sideText(t?.sideA, "A")} />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          <SideCard side="A" label={isA ? "Your side" : isB ? "Their side" : "First side"} text={sideText(t?.sideA, "A")} highlight={winner === "A"} />
+          <SideCard side="B" label={isB ? "Your side" : "Their side"} text={sideText(t?.sideB, "B")} highlight={winner === "B"} />
+        </div>
+      )}
 
       {!isA && !isB && !isJuror && t && t.access !== "invite" && c.status >= 2 && (
         <CrowdSection caseId={caseId} c={c} myVote={t.myCrowdVote} crowd={t.crowd} total={t.crowdTotal} />
@@ -105,19 +116,27 @@ export function CaseView() {
   );
 }
 
-function Verdict({ c, winner, isA, isB }: { c: ChainCase; winner: "A" | "B"; isA: boolean; isB: boolean }) {
+function Verdict(props: { c: ChainCase; winner: "A" | "B"; isA: boolean; isB: boolean; oneSided: boolean }) {
+  const { c, winner, isA, isB, oneSided } = props;
   const mine = (winner === "A" && isA) || (winner === "B" && isB);
-  const headline = isA || isB ? (mine ? "You were right!" : "The jury sided with them.") : `Side ${winner} is right.`;
+  const right = winner === "A";
+  const headline = oneSided
+    ? isA
+      ? right ? "You're right!" : "You're wrong."
+      : `The jury says: ${right ? "Right" : "Wrong"}.`
+    : isA || isB
+      ? mine ? "You were right!" : "The jury sided with them."
+      : `${winner === "A" ? "The first side" : "Their side"} is right.`;
   return (
     <section id="verdict" className="tile scroll-mt-4 overflow-hidden bg-court text-white">
       <div className="flex items-center gap-4 p-5">
         <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-ink font-display text-3xl font-extrabold ${winner === "A" ? "bg-side-a" : "bg-side-b"}`}>
-          {winner}
+          {oneSided ? (right ? "✓" : "✗") : winner === "A" ? "1" : "2"}
         </div>
         <div>
           <p className="font-display text-2xl font-extrabold leading-tight">{headline}</p>
           <p className="text-white/80">
-            The jury voted {c.votesA}–{c.votesB}. {formatG(c.depositA + c.depositB)} {network.tokenSymbol} went to the {c.reveals} jurors who voted.
+            The jury voted {oneSided ? `${c.votesA} right, ${c.votesB} wrong` : `${c.votesA}–${c.votesB}`}. {formatG(c.depositA + c.depositB)} {network.tokenSymbol} went to the {c.reveals} jurors who voted.
           </p>
         </div>
       </div>
@@ -189,7 +208,7 @@ function StagePanel(props: {
       now > Number(c.drawDeadline) ? (
         <><p className="font-semibold">The jury wasn&apos;t called in time.</p>{btn("Cancel and refund", call("cancelExpired"))}</>
       ) : (
-        <><p className="font-semibold">Both sides are in. Time to call the jury.</p>{btn("Call the jury", requestJury)}{keeperNote}</>
+        <><p className="font-semibold">{c.mode === 1 ? "Ready for the jury." : "Both sides are in. Time to call the jury."}</p>{btn("Call the jury", requestJury)}{keeperNote}</>
       );
   } else if (c.status === 3) {
     body =
@@ -262,7 +281,6 @@ function InviteShare({ caseId, deadline }: { caseId: bigint; deadline: string })
             <strong>Send this link privately</strong>, only to the other person. Anyone with it can take their seat.
             They have {deadline} to join.
           </p>
-          <code className="break-all rounded-lg bg-ink/5 px-2 py-1 text-xs">{link}</code>
           <div className="flex flex-wrap gap-2">
             <button
               className="btn"
@@ -356,23 +374,30 @@ function ReportCase({ caseId }: { caseId: bigint }) {
 function CrowdSection(props: { caseId: bigint; c: ChainCase; myVote: number | null; crowd: { a: number; b: number } | null; total: number }) {
   const { caseId, c, crowd, total } = props;
   const { myVote, cast, busy, error } = useCrowdVote(caseId.toString(), props.myVote);
+  const oneSided = c.mode === 1;
   const decided = c.status === 5 || c.status === 6;
   const called = calledIt(myVote, c.status, c.verdict);
   return (
     <Panel>
-      <p className="font-display text-xl font-extrabold">{decided ? "What the crowd said" : "Who do you think is right?"}</p>
+      <p className="font-display text-xl font-extrabold">
+        {decided ? "What the crowd said" : oneSided ? "Are they right?" : "Who do you think is right?"}
+      </p>
       {!decided && !myVote && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn bg-side-a text-white" disabled={busy} onClick={() => cast(1)}>{busy ? <Spinner /> : "A is right"}</button>
-            <button className="btn bg-side-b text-white" disabled={busy} onClick={() => cast(2)}>{busy ? <Spinner /> : "B is right"}</button>
+            <button className={`btn text-white ${oneSided ? "bg-side-b" : "bg-side-a"}`} disabled={busy} onClick={() => cast(1)}>
+              {busy ? <Spinner /> : oneSided ? "Right" : "First side"}
+            </button>
+            <button className={`btn text-white ${oneSided ? "bg-side-a" : "bg-side-b"}`} disabled={busy} onClick={() => cast(2)}>
+              {busy ? <Spinner /> : oneSided ? "Wrong" : "Their side"}
+            </button>
           </div>
           <Hint>The random jury gives the official verdict. See if you call it.</Hint>
         </>
       )}
       {!decided && myVote && (
         <p>
-          <strong>You said {myVote === 1 ? "A" : "B"}.</strong> Crowd results show once the jury decides
+          <strong>You said: {oneSided ? (myVote === 1 ? "Right" : "Wrong") : myVote === 1 ? "first side" : "their side"}.</strong> Crowd results show once the jury decides
           {total > 1 ? ` · ${total} people have weighed in` : ""}.
         </p>
       )}
@@ -383,7 +408,7 @@ function CrowdSection(props: { caseId: bigint; c: ChainCase; myVote: number | nu
               {called ? "You called it ✓" : "The jury disagreed with you ✗"}
             </p>
           )}
-          {crowd ? <CrowdBar a={crowd.a} b={crowd.b} /> : <Hint>No crowd votes on this one.</Hint>}
+          {crowd ? <CrowdBar a={crowd.a} b={crowd.b} labels={oneSided ? ["Right", "Wrong"] : ["First", "Theirs"]} /> : <Hint>No crowd votes on this one.</Hint>}
         </>
       )}
       <ErrorNote>{error}</ErrorNote>

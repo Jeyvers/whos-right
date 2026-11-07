@@ -6,6 +6,8 @@ export type FeedItem = {
   caseId: string;
   status: number; // on-chain status: 2 Joined, 3 Drawing, 4 Voting, 5 Resolved, 6 Refunded
   speed: number;
+  mode: number; // 0 two-sided, 1 one-sided (vote 1 = Right, 2 = Wrong)
+  title: string;
   fee: string; // wei
   verdict: number; // 1 = A, 2 = B (when status 5)
   votesA: number;
@@ -17,7 +19,7 @@ export type FeedItem = {
   commitDeadline: number;
   revealDeadline: number;
   sideA: string;
-  sideB: string;
+  sideB: string | null; // null for one-sided cases
   /** Hidden (null) until the official verdict is in, so the crowd can't sway the jury. */
   crowd: CrowdTally | null;
   crowdTotal: number;

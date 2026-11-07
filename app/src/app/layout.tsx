@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { AgreementGate } from "@/components/AgreementGate";
 import { HeaderNav } from "@/components/HeaderNav";
 import { Scales } from "@/components/Scales";
+import { network } from "@/lib/network";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -39,6 +40,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </div>
             </div>
           </header>
+          {network.testnet && (
+            <p className="bg-verdict px-4 py-1.5 text-center text-sm font-semibold text-ink">
+              🧪 Test mode: it&apos;s all free. Test G$ and network fees are on us, added automatically when you need them.
+            </p>
+          )}
           <main className="flex-1">{children}</main>
           <footer className="bg-ink text-sm text-white/80">
             <div className="mx-auto flex max-w-2xl flex-wrap gap-x-5 gap-y-1 px-4 py-5">

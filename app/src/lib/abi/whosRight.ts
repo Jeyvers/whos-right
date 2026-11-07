@@ -169,6 +169,32 @@ export const whosRightAbi = [
   },
   {
     "type": "function",
+    "name": "VOTE_RIGHT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "VOTE_WRONG",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
     "outputs": [],
@@ -387,6 +413,11 @@ export const whosRightAbi = [
             "name": "speed",
             "type": "uint8",
             "internalType": "enum WhosRight.Speed"
+          },
+          {
+            "name": "mode",
+            "type": "uint8",
+            "internalType": "enum WhosRight.Mode"
           },
           {
             "name": "status",
@@ -745,6 +776,11 @@ export const whosRightAbi = [
         "name": "speed",
         "type": "uint8",
         "internalType": "enum WhosRight.Speed"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "internalType": "enum WhosRight.Mode"
       },
       {
         "name": "contentHash",
@@ -1147,6 +1183,12 @@ export const whosRightAbi = [
         "internalType": "enum WhosRight.Speed"
       },
       {
+        "name": "mode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum WhosRight.Mode"
+      },
+      {
         "name": "contentHash",
         "type": "bytes32",
         "indexed": false,
@@ -1184,6 +1226,12 @@ export const whosRightAbi = [
       },
       {
         "name": "joinDeadline",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "drawDeadline",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"

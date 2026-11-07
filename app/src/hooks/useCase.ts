@@ -8,6 +8,8 @@ import { ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { network } from "@/lib/network";
 
 export type CaseText = {
+  mode: number;
+  title: string | null;
   access: "party" | "juror" | "invite" | "public" | "none";
   isPublic: boolean;
   hidden: boolean;

@@ -128,8 +128,12 @@ function CaseList() {
               </span>
             </div>
             <p className="text-sm text-ink/70">
-              {ROLE_LABEL[role]} · {c.speed === SPEED.Fast ? "Fast" : "Standard"} · {formatG(c.fee)} {sym} each
-              {stage === "resolved" && ` · Side ${c.verdict === 1 ? "A" : "B"} won ${c.votesA}–${c.votesB}`}
+              {ROLE_LABEL[role]} · {c.mode === 1 ? "Ask the jury" : "Settle it together"} · {c.speed === SPEED.Fast ? "Fast" : "Standard"} ·{" "}
+              {formatG(c.fee)} {sym}{c.mode === 1 ? "" : " each"}
+              {stage === "resolved" &&
+                (c.mode === 1
+                  ? ` · Jury said ${c.verdict === 1 ? "Right" : "Wrong"}`
+                  : ` · ${c.verdict === 1 ? "First side" : "Their side"} won ${c.votesA}–${c.votesB}`)}
             </p>
             {credit > 0n && (
               <p className="text-sm font-semibold">

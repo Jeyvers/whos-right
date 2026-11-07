@@ -1,7 +1,7 @@
 "use client";
 
 import { encodeAbiParameters, keccak256, bytesToHex, type Address, type Hex } from "viem";
-import { network } from "./network";
+import { dataKey } from "./network";
 
 /**
  * A juror's secret vote key (salt). Preferred: derived from a wallet signature over a fixed message, so the same
@@ -10,7 +10,7 @@ import { network } from "./network";
  * work out the vote before reveal. The juror is told when the fallback is used.
  */
 export function voteKeyMessage(caseId: bigint): string {
-  return `Who's Right? private vote key\nCase ${caseId} on ${network.name}\n\nSigning is free. It creates the secret key that hides your vote until the reveal.`;
+  return `Who's Right? private vote key\nCase ${caseId} on ${dataKey}\n\nSigning is free. It creates the secret key that hides your vote until the reveal.`;
 }
 
 export function commitmentOf(caseId: bigint, juror: Address, vote: number, salt: Hex): Hex {
@@ -22,7 +22,7 @@ export function commitmentOf(caseId: bigint, juror: Address, vote: number, salt:
   );
 }
 
-const lsKey = (caseId: bigint, juror: Address) => `wr:salt:${network.name}:${caseId}:${juror.toLowerCase()}`;
+const lsKey = (caseId: bigint, juror: Address) => `wr:salt:${dataKey}:${caseId}:${juror.toLowerCase()}`;
 
 export function loadLocalSalt(caseId: bigint, juror: Address): Hex | null {
   try {

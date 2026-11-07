@@ -1,8 +1,14 @@
 # Who's Right? — contracts
 
 Two verified humans settle an argument with a randomly drawn jury of verified humans on Celo.
-Both parties pay the same G$ fee. The whole pot goes to jurors who reveal their vote on time;
-the winner receives nothing. If no verdict is reached, both parties are refunded.
+Two modes, chosen by the person opening the case:
+
+- **One-sided ("Ask the jury", the app's default):** only A pays. There is no second party and no join step;
+  the jury votes **Right** or **Wrong**.
+- **Two-sided ("Settle it together"):** A invites B, both pay the same fee, and the jury picks a side.
+
+The whole pot goes to jurors who reveal their vote on time; the winner receives nothing. If no verdict is reached,
+everyone who paid is refunded.
 
 Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet randomness.
 
@@ -78,10 +84,27 @@ There is no welcome credit or subsidy.
 Stages end early: the commit stage ends the moment every juror has committed (the full reveal window starts then),
 and the reveal stage ends the moment every committed juror has revealed, so `finalize` can run immediately.
 
+## Modes
+
+| | One-sided | Two-sided |
+|---|---|---|
+| Who pays | A only | A and B, the same locked fee |
+| Join step | None: the case opens ready for the jury (`status = Joined`, `drawDeadline = now + drawWindow`) | B joins with the invite before `joinDeadline` |
+| `inviteSigner` | Must be `address(0)` | Must be non-zero |
+| Votes | 1 = Right (A is right), 2 = Wrong (`VOTE_RIGHT` / `VOTE_WRONG`) | 1 = A, 2 = B |
+| Pot | A's deposit | Both deposits |
+| No verdict | A refunded | Both refunded |
+
+The mode is stored on the case (`getCase(id).mode`). Everything after opening (jury request, draw, commit-reveal,
+early stage endings, finalize, refunds, withdraw) is the same code path for both modes. `partyB`/`rootB` stay zero
+on one-sided cases; refunds skip a zero deposit, and nothing is ever credited to `address(0)` (an invariant test
+checks this).
+
 ## How a case works
 
 1. **Juror pool.** Verified humans call `joinPool()` (free). One active entry per identity and per wallet.
-2. **Open.** A approves the speed's fee (`speedFee(speed)`) and calls `openCase(speed, contentHash, inviteSigner)`.
+2. **Open.** A approves the speed's fee (`speedFee(speed)`) and calls `openCase(speed, mode, contentHash, inviteSigner)`.
+   One-sided cases skip step 3 and go straight to step 4.
    Only a hash is stored.
    `inviteSigner` is the address of a one-time key generated in A's browser; its private key goes in the share link.
 3. **Join.** B's client signs `joinDigest(caseId, B)` with the invite key and B calls
@@ -104,8 +127,8 @@ and the reveal stage ends the moment every committed juror has revealed, so `fin
 | Active pool `< minPoolSize` at `requestJury` | Case refunded immediately; caller's CELO returned |
 | Fewer distinct eligible jurors than `jurySize` | Case refunded at `drawJury` |
 | Randomness late or failed past `drawDeadline` | `cancelExpired` → both refunded |
-| Nobody reveals | Both refunded |
-| Tie (even number of reveals, split) | Both refunded; jurors unpaid |
+| Nobody reveals | Everyone who paid refunded (one-sided: A) |
+| Tie (even number of reveals, split) | Everyone who paid refunded; jurors unpaid |
 | Juror doesn't commit or reveal | Gets nothing |
 
 Rounding: each revealer gets `pot / r`; the first `pot % r` revealers (in jury order) get 1 extra wei. Nothing is left over.
@@ -117,7 +140,7 @@ The deployer keystore is the owner at launch. Move ownership to a multisig after
 
 1. `setNewCasesPaused(bool)` — stops/starts `openCase` only.
 2. `setSpeedFee(speed, uint256)` — per-party fee for NEW cases of that speed; must be `> 0` and
-   `<= MAX_CASE_FEE` (10,000 G$). Existing cases keep the fee and windows locked at creation.
+   `<= MAX_CASE_FEE` (1,000 G$). Existing cases keep the fee and windows locked at creation.
    The owner cannot change the commit/reveal windows (they are constants).
 3. `transferOwnership` / `acceptOwnership` / `renounceOwnership`.
 
@@ -181,7 +204,7 @@ forge script script/DeployTestnet.s.sol --rpc-url celo_sepolia --account whos-ri
 forge script script/DeployMainnet.s.sol --rpc-url celo --account whos-right
 ```
 
-Fees start at the presets (Standard 100, Fast 300 G$ per party; cap 10,000) on both networks. Voting windows are fixed presets.
+Fees start at the presets (Standard 100, Fast 300 G$ per party; cap 1,000) on both networks. Voting windows are fixed presets.
 Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `DRAW_WINDOW`):
 
 | | Testnet | Mainnet |

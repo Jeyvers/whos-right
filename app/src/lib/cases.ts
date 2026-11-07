@@ -1,6 +1,9 @@
 import type { Address } from "viem";
 
 export const SPEED = { Standard: 0, Fast: 1 } as const;
+/** Mirrors WhosRight.Mode. OneSided: only A pays, no join step, the jury votes Right (1) or Wrong (2). */
+export const MODE = { TwoSided: 0, OneSided: 1 } as const;
+export type ModeValue = (typeof MODE)[keyof typeof MODE];
 export type SpeedValue = (typeof SPEED)[keyof typeof SPEED];
 
 /** Mirrors WhosRight.Status */
@@ -27,6 +30,7 @@ export type ChainCase = {
   rootB: Address;
   inviteSigner: Address;
   speed: number;
+  mode: number;
   status: number;
   verdict: number;
   refundReason: number;

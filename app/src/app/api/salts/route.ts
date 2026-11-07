@@ -1,5 +1,5 @@
 import { isHex } from "viem";
-import { network } from "@/lib/network";
+import { dataKey } from "@/lib/network";
 import { sameAddress } from "@/lib/cases";
 import { readJurors } from "@/lib/server/chain";
 import { authenticate } from "@/lib/server/privy";
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const { data } = await db()
     .from("vote_salts")
     .select("salt")
-    .eq("network", network.name)
+    .eq("network", dataKey)
     .eq("case_id", r.caseId.toString())
     .eq("juror", r.juror)
     .maybeSingle();
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   if (!body.salt || !isHex(body.salt) || body.salt.length !== 66) return bad("Bad salt.");
   const { error } = await db()
     .from("vote_salts")
-    .insert({ network: network.name, case_id: r.caseId.toString(), juror: r.juror, salt: body.salt });
+    .insert({ network: dataKey, case_id: r.caseId.toString(), juror: r.juror, salt: body.salt });
   if (error && error.code !== "23505") return bad("Couldn't save your vote key.", 500);
   return Response.json({ ok: true });
 }

@@ -14,10 +14,11 @@ export default function Terms() {
 
       <h2>What the service does</h2>
       <p>
-        Two people each pay the same fee in G$ and a randomly drawn jury of verified people votes on who is right. The
-        whole fee pot goes to the jurors who vote on time. The person who wins gets no money. If no verdict is reached,
-        both people are refunded. Verdicts are opinions of the jurors, not legal, medical or financial advice, and have
-        no legal effect.
+        You put an argument to a randomly drawn jury of verified people. Ask the jury on your own (only you pay, and
+        the jury says whether you&apos;re right or wrong), or settle it together with the other person (you both pay
+        the same fee, and the jury picks a side). The whole fee pot goes to the jurors who vote on time; whoever is
+        right gets no money. If no verdict is reached, everyone who paid is refunded. Verdicts are opinions of the
+        jurors, not legal, medical or financial advice, and have no legal effect.
       </p>
 
       <h2>Payments</h2>
@@ -32,6 +33,10 @@ export default function Terms() {
         <li>Text only. Describe people by role (&quot;my roommate&quot;), not by name.</li>
         <li>No phone numbers, emails, addresses, links or anything that identifies a private person.</li>
         <li>No harassment, hate, threats, sexual content involving minors, or illegal content.</li>
+        <li>
+          When you ask the jury on your own, the other person can&apos;t reply, so names, @handles and anything else
+          that could identify them are not allowed at all.
+        </li>
       </ul>
       <p>We may hide any case that breaks these rules. Hiding removes it from the app; it can&apos;t undo payments.</p>
 

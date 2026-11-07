@@ -5,7 +5,7 @@ import { whosRightAbi } from "@/lib/abi/whosRight";
 import { identityAbi } from "@/lib/abi/tokens";
 import type { ChainCase } from "@/lib/cases";
 import { decide, type Action } from "@/lib/keeperRules";
-import { network, rpcTransport } from "@/lib/network";
+import { dataKey, network, rpcTransport } from "@/lib/network";
 import { publicClient } from "./chain";
 import { db } from "./supabase";
 
@@ -56,7 +56,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
   const wr = network.whosRight;
   if (!account || !wr) return { ran: false, reason: "not-configured", steps: [], capped: false };
 
-  const { data: gotLease } = await db().rpc("keeper_take_lease", { p_network: network.name, p_seconds: LEASE_SECONDS });
+  const { data: gotLease } = await db().rpc("keeper_take_lease", { p_network: dataKey, p_seconds: LEASE_SECONDS });
   if (!gotLease) return { ran: false, reason: "busy", steps: [], capped: false };
 
   const wallet = createWalletClient({ account, chain: network.chain, transport: rpcTransport() });
@@ -68,7 +68,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
   const startedAt = new Date();
   const shortError = (e: unknown) => (e instanceof Error ? (e as { shortMessage?: string }).shortMessage ?? e.message : String(e)).slice(0, 300);
 
-  const { data: state } = await db().from("keeper_state").select("*").eq("network", network.name).single();
+  const { data: state } = await db().from("keeper_state").select("*").eq("network", dataKey).single();
   let nextCaseId = BigInt(state?.next_case_id ?? 1);
   let nextPoolIndex = BigInt(state?.next_pool_index ?? 0);
 
@@ -110,7 +110,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
     const { data: total } = await db().rpc("keeper_add_spend", { p_network: network.name, p_wei: cost.toString() });
     spent = total !== null && total !== undefined ? BigInt(total) : spent + cost;
     await db().from("keeper_txs").insert({
-      network: network.name,
+      network: dataKey,
       action,
       case_id: meta.caseId?.toString() ?? null,
       tx_hash: hash,
@@ -216,7 +216,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
         last_run_at: new Date().toISOString(),
         last_error: error ?? null,
       })
-      .eq("network", network.name);
+      .eq("network", dataKey);
     await logRun({ trigger, startedAt, steps: steps.length, failures, capped, budgetLow, error, keeper: account.address });
   }
   return { ran: true, steps, capped: capped || budgetLow, error };
@@ -244,7 +244,7 @@ async function logRun(r: {
       topup ? publicClient.getBalance({ address: topup }).catch(() => null) : Promise.resolve(null),
     ]);
     await db().from("keeper_runs").insert({
-      network: network.name,
+      network: dataKey,
       trigger: r.trigger,
       started_at: r.startedAt.toISOString(),
       finished_at: new Date().toISOString(),
@@ -260,7 +260,7 @@ async function logRun(r: {
     if (r.failures.length) {
       await db().from("keeper_failures").insert(
         r.failures.map((f) => ({
-          network: network.name,
+          network: dataKey,
           action: f.action,
           case_id: f.caseId?.toString() ?? null,
           pool_index: f.poolIndex?.toString() ?? null,
@@ -281,7 +281,7 @@ export async function keeperStatus(): Promise<KeeperStatus> {
   const { data } = await db()
     .from("keeper_state")
     .select("capped_until, last_run_at")
-    .eq("network", network.name)
+    .eq("network", dataKey)
     .maybeSingle();
   const cappedUntil = data?.capped_until ?? null;
   const capped = Boolean(cappedUntil && new Date(cappedUntil) > new Date());

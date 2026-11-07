@@ -1,4 +1,4 @@
-import { network } from "@/lib/network";
+import { dataKey } from "@/lib/network";
 import { sameAddress } from "@/lib/cases";
 import { readCase, readJurors } from "@/lib/server/chain";
 import { bad, parseCaseId } from "@/lib/server/http";
@@ -30,7 +30,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/cases/[id]/
   }
 
   const { error } = await db().from("crowd_votes").insert({
-    network: network.name,
+    network: dataKey,
     case_id: caseId.toString(),
     person: who.person,
     privy_user_id: user.userId,

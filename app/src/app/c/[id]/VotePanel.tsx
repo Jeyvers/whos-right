@@ -35,6 +35,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
   const [fallbackUsed, setFallbackUsed] = useState(false);
   const wr = network.whosRight!;
 
+  const oneSided = c.mode === 1;
   const committed = myVote.commitment !== `0x${"0".repeat(64)}`;
   const revealOpen = now > Number(c.commitDeadline) || c.commits === jurors.length;
   const commitOpen = !committed && now <= Number(c.commitDeadline);
@@ -117,10 +118,18 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
       <p className="font-display text-2xl font-extrabold">You&apos;re on the jury!</p>
       {commitOpen && (
         <>
-          <p>Read both sides, then pick who&apos;s right. Your vote stays secret until everyone has voted.</p>
+          <p>
+            {oneSided
+              ? "You only have one side of the story. Are they right or wrong? Your vote stays secret until everyone has voted."
+              : "Read both sides, then pick who's right. Your vote stays secret until everyone has voted."}
+          </p>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn bg-side-a text-white" disabled={busy} onClick={() => commit(VOTE.A)}>Side A is right</button>
-            <button className="btn bg-side-b text-white" disabled={busy} onClick={() => commit(VOTE.B)}>Side B is right</button>
+            <button className={`btn text-white ${oneSided ? "bg-side-b" : "bg-side-a"}`} disabled={busy} onClick={() => commit(VOTE.A)}>
+              {oneSided ? "Right" : "First side"}
+            </button>
+            <button className={`btn text-white ${oneSided ? "bg-side-a" : "bg-side-b"}`} disabled={busy} onClick={() => commit(VOTE.B)}>
+              {oneSided ? "Wrong" : "Their side"}
+            </button>
           </div>
           <Hint>
             {timeLeft(c.commitDeadline, now)} left to vote. Your wallet asks you to sign twice: that creates your secret

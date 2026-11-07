@@ -20,7 +20,7 @@ import { SPEED, sameAddress, timeLeft, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
 import { inviteViewMessage } from "@/lib/inviteView";
-import { network } from "@/lib/network";
+import { dataKey, network } from "@/lib/network";
 import { checkSideText } from "@/lib/textRules";
 import { wagmiConfig } from "@/lib/wagmi";
 import { Loading } from "@/components/Loading";
@@ -45,7 +45,7 @@ export function JoinCase() {
   const [previewSig, setPreviewSig] = useState<string>();
   useEffect(() => {
     if (!pk || !caseId) return;
-    privateKeyToAccount(pk).signMessage({ message: inviteViewMessage(network.name, caseId) }).then(setPreviewSig);
+    privateKeyToAccount(pk).signMessage({ message: inviteViewMessage(dataKey, caseId) }).then(setPreviewSig);
   }, [pk, caseId]);
   const text = useCaseText(caseId, { inviteSig: previewSig, enabled: Boolean(previewSig) });
 
@@ -71,6 +71,7 @@ export function JoinCase() {
   return (
     <Page>
       <Title sub="Someone thinks they're right. Read their side, then tell yours.">You&apos;ve been called out!</Title>
+      {text.data?.title && <h2 className="font-display text-2xl font-extrabold leading-snug">&ldquo;{text.data.title}&rdquo;</h2>}
       <SideCard side="A" label="Their side" text={text.data?.sideA ?? <Loading size="sm" label="Loading their side…" />} />
       <Terms c={c} deadline={timeLeft(c.joinDeadline, now)} />
       <Gate>

@@ -1,6 +1,6 @@
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import type { ChainCase } from "@/lib/cases";
-import { network } from "@/lib/network";
+import { dataKey, network } from "@/lib/network";
 import { publicClient } from "@/lib/server/chain";
 import { verifiedPerson } from "@/lib/server/person";
 import { authenticate } from "@/lib/server/privy";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const { data: votes } = await db()
     .from("crowd_votes")
     .select("case_id, vote, created_at")
-    .eq("network", network.name)
+    .eq("network", dataKey)
     .eq("person", who.person)
     .order("created_at", { ascending: false })
     .limit(200);
