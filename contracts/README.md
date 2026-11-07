@@ -160,6 +160,8 @@ Instead, expired jurors are handled without any lever:
 
 ## Tests
 
+Run all commands from `contracts/`.
+
 ```sh
 forge test                                             # unit, reentrancy, fuzz, invariant (no network)
 RUN_FORK_TESTS=true forge test --match-path test/fork  # real G$, Identity and Witnet on a Celo fork

@@ -1,14 +1,27 @@
-# Foundry
-cache/
-out/
-broadcast/*/31337/
-broadcast/**/dry-run/
+# OS
+.DS_Store
 
-# Secrets - never commit
+# Foundry (contracts/)
+contracts/cache/
+contracts/out/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# Node / Next.js (app/)
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets - never commit (service role key, Privy secret, keeper / gas top-up keys)
 .env
 .env.*
+.env-*
 !.env.example
 *.key
+*.pem
 keystore/
 
 # Throwaway testnet smoke-test wallets (private keys) - never commit
