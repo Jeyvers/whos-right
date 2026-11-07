@@ -126,7 +126,12 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
     if (spent >= reserveStart) budgetLow = true;
     const block = await publicClient.getBlock();
     const now = block.timestamp;
-    const caseCount = await publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "caseCount" });
+    const [caseCount, activePool, minPool] = await Promise.all([
+      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "caseCount" }),
+      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "activePoolSize" }),
+      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "minPoolSize" }),
+    ]);
+    const poolReady = activePool >= minPool;
 
     // 1. Cases, oldest unfinished first.
     let cursorMovable = true;
@@ -144,7 +149,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
       }
       const atCursor = cursorMovable;
       cursorMovable = false;
-      const action = decide(c, jurors.length, ready, now);
+      const action = decide(c, jurors.length, ready, now, poolReady);
       if (!action) continue;
       if (action === "requestJury" && budgetLow) continue;
       let sent: boolean;

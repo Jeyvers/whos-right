@@ -45,8 +45,8 @@ export function AgreementGate() {
             <strong>Cases are public.</strong> Anyone can read both sides and the verdict.
           </li>
           <li className="rounded-2xl bg-ink/5 p-3">
-            <strong>You can take a case down.</strong> Either side can remove it from public view at any time, from the
-            case page.
+            <strong>Report anything harmful.</strong> Every case has a report link; we review reports and hide cases that
+            break the rules.
           </li>
           <li className="rounded-2xl bg-ink/5 p-3">
             <strong>A random jury decides.</strong> Verified people you don&apos;t know read both sides and vote.

@@ -40,7 +40,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
   const sideA = sides?.find((s) => s.role === "A" && sameAddress(s.content_hash, c.contentA));
   const sideB = sides?.find((s) => s.role === "B" && sameAddress(s.content_hash, c.contentB));
   const hidden = Boolean(flags?.hidden);
-  const removalRequested = Boolean(flags?.removal_requested_at);
+  const removalRequested = false; // for now every case stays public; only admins hide harmful cases (after a report)
   const oneSided = c.mode === 1;
   // One-sided: there is no B, so A's agreement alone decides. Two-sided: both must have agreed.
   const isPublic = Boolean(sideA?.public_consent && (oneSided || sideB?.public_consent)) && !hidden && !removalRequested;
@@ -74,10 +74,11 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cases/[id]">
     removalRequested,
     sideA: canSeeA && sideA ? sideA.body : null,
     sideB: canSeeB && sideB ? sideB.body : null,
-    // Crowd votes: tally hidden until the official verdict so it can't sway the jury.
-    crowd: c.status === 5 || c.status === 6
-      ? { a: crowdRows?.filter((v) => v.vote === 1).length ?? 0, b: crowdRows?.filter((v) => v.vote === 2).length ?? 0 }
-      : null,
+    // Twitter-poll style: shown once you've voted, or to everyone with the verdict.
+    crowd:
+      c.status === 5 || c.status === 6 || (person && crowdRows?.some((v) => v.person === person))
+        ? { a: crowdRows?.filter((v) => v.vote === 1).length ?? 0, b: crowdRows?.filter((v) => v.vote === 2).length ?? 0 }
+        : null,
     crowdTotal: crowdRows?.length ?? 0,
     myCrowdVote: person ? crowdRows?.find((v) => v.person === person)?.vote ?? null : null,
   });

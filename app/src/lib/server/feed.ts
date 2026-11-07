@@ -57,7 +57,8 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
       const b = sides?.find((s) => String(s.case_id) === key && s.role === "B" && sameAddress(s.content_hash, c.contentB));
       const f = flags?.find((x) => String(x.case_id) === key);
       const oneSided = c.mode === 1;
-      if (!a?.public_consent || (!oneSided && !b?.public_consent) || f?.hidden || f?.removal_requested_at) continue;
+      // Every case is public for now; only admin-hidden (reported, harmful) cases are left out.
+      if (!a?.public_consent || (!oneSided && !b?.public_consent) || f?.hidden) continue;
 
       const caseVotes = votes?.filter((v) => String(v.case_id) === key) ?? [];
       const tally = { a: caseVotes.filter((v) => v.vote === 1).length, b: caseVotes.filter((v) => v.vote === 2).length };
@@ -85,10 +86,11 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
         revealDeadline: Number(c.revealDeadline),
         sideA: a.body,
         sideB: oneSided ? null : b!.body,
-        crowd: official ? tally : null,
+        crowd: official || mine ? tally : null,
         crowdTotal: tally.a + tally.b,
         myVote: mine,
         viewerRole: isParty ? "party" : isJuror ? "juror" : null,
+        parties: [c.partyA, c.partyB].filter((p) => p !== ZERO_ADDRESS),
       });
       if (items.length >= limit) break;
     }

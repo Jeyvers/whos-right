@@ -22,6 +22,10 @@ describe("keeper decide", () => {
     expect(decide(at({ status: 2 }), 0, false, 150n)).toBe("requestJury");
     expect(decide(at({ status: 2 }), 0, false, 201n)).toBe("cancelExpired");
   });
+  it("joined with too few jurors in the pool: waits instead of triggering an instant refund", () => {
+    expect(decide(at({ status: 2 }), 0, false, 150n, false)).toBeNull();
+    expect(decide(at({ status: 2 }), 0, false, 201n, false)).toBe("cancelExpired"); // still refunds at the deadline
+  });
   it("drawing: waits for randomness, draws, or refunds after the deadline", () => {
     expect(decide(at({ status: 3 }), 0, false, 150n)).toBeNull();
     expect(decide(at({ status: 3 }), 0, true, 150n)).toBe("drawJury");

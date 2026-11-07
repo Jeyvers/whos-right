@@ -20,13 +20,18 @@ export type FeedItem = {
   revealDeadline: number;
   sideA: string;
   sideB: string | null; // null for one-sided cases
-  /** Hidden (null) until the official verdict is in, so the crowd can't sway the jury. */
+  /**
+   * Like a Twitter poll: visible to people who've voted (and to everyone once the verdict is in). Parties and
+   * jurors can't vote in it, so they only see it with the verdict and the jury can't be swayed.
+   */
   crowd: CrowdTally | null;
   crowdTotal: number;
   /** The viewer's own crowd vote, 1 or 2. */
   myVote: number | null;
   /** Viewer is a party or a drawn juror on this case (they don't crowd-vote it). */
   viewerRole: "party" | "juror" | null;
+  /** Party wallets (public on-chain anyway), so the client can also recognise your own case instantly. */
+  parties: string[];
 };
 
 export type FeedPage = { items: FeedItem[]; nextBefore: string | null };

@@ -12,7 +12,7 @@ export default function Privacy() {
       <h2>What we store</h2>
       <ul>
         <li>Your sign-in (through Privy) and your wallet address.</li>
-        <li>The text of cases you write, your choice about public visibility, and any reports you make.</li>
+        <li>The text of cases you write and any reports you make.</li>
         <li>Basic usage counts (cases, jurors, fees paid and earned).</li>
       </ul>
 
@@ -26,7 +26,7 @@ export default function Privacy() {
       <ul>
         <li>The other person and the drawn jurors always see the case text.</li>
         <li>Everyone else can see it too: cases are public, which you agree to once when you sign up.</li>
-        <li>Either person can take a case off public view at any time from the case page.</li>
+        <li>Cases stay public. Report a case that breaks the rules and we&apos;ll review it; harmful cases are hidden.</li>
       </ul>
 
       <h2>Verification</h2>

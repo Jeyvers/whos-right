@@ -60,7 +60,9 @@ export function useCrowdVote(caseId: string, initial: number | null) {
         }
         await authFetch(`/api/cases/${caseId}/crowd`, { method: "POST", body: JSON.stringify({ vote }) });
         setMyVote(vote);
+        // Results appear right away (poll-style): refresh the case and the feed so the tally comes back.
         queryClient.invalidateQueries({ queryKey: ["case-text", caseId] });
+        queryClient.invalidateQueries({ queryKey: ["feed"] });
         queryClient.invalidateQueries({ queryKey: ["my-calls"] });
       } catch (e) {
         const msg = friendlyError(e);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts } from "wagmi";
 import { getGasPrice, readContract } from "wagmi/actions";
 import { ErrorNote, Hint, Page, Panel, SideCard, StatusPill, Title } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
@@ -21,7 +21,9 @@ import { KeeperBanner } from "@/components/KeeperBanner";
 import { CaseFeed } from "@/components/CaseFeed";
 import { useKeeperPoke, useKeeperStatus } from "@/hooks/useKeeper";
 import { VotePanel } from "./VotePanel";
-import { CrowdBar } from "@/components/CaseCard";
+import { JuryDraw } from "@/components/JuryDraw";
+import { Poll } from "@/components/Poll";
+import { usePrivy } from "@privy-io/react-auth";
 import { useCrowdVote } from "@/hooks/useCrowdVote";
 import { calledIt } from "@/lib/crowd";
 import { Loading } from "@/components/Loading";
@@ -102,8 +104,15 @@ export function CaseView() {
         </div>
       )}
 
-      {!isA && !isB && !isJuror && t && t.access !== "invite" && c.status >= 2 && (
-        <CrowdSection caseId={caseId} c={c} myVote={t.myCrowdVote} crowd={t.crowd} total={t.crowdTotal} />
+      {t && t.access !== "invite" && c.status >= 2 && (
+        <CrowdSection
+          caseId={caseId}
+          c={c}
+          myVote={t.myCrowdVote}
+          crowd={t.crowd}
+          total={t.crowdTotal}
+          canVote={!isA && !isB && !isJuror}
+        />
       )}
 
       {isJuror && c.status === 4 && caseId && <VotePanel caseId={caseId} c={c} jurors={jurors} myVote={myVote!} onDone={refetch} />}
@@ -111,7 +120,6 @@ export function CaseView() {
       {waitingOnKeeper && <KeeperBanner />}
       <StagePanel caseId={caseId} c={c} jurors={jurors} randomnessReady={randomnessReady} isA={isA} now={now} onDone={refetch} />
 
-      {(isA || isB) && t && <PrivacyControls caseId={caseId} isPublic={t.isPublic} removalRequested={t.removalRequested} />}
       <ReportCase caseId={caseId} />
 
       {/* Never a dead end: keep judging. */}
@@ -197,6 +205,32 @@ function StagePanel(props: {
       {busy === label ? <><Spinner /> Working…</> : label}
     </button>
   );
+  const pool = useReadContracts({
+    contracts: [
+      { address: wr, abi: whosRightAbi, functionName: "activePoolSize" },
+      { address: wr, abi: whosRightAbi, functionName: "minPoolSize" },
+      { address: wr, abi: whosRightAbi, functionName: "jurySize" },
+    ],
+    allowFailure: false,
+    query: { refetchInterval: 15_000 },
+  });
+  const [poolSizeB, minPoolB, jurySizeB] = pool.data ?? [0n, 0n, 5n];
+  const poolSize = Number(poolSizeB);
+  const minPool = Number(minPoolB);
+  const jurySize = Number(jurySizeB);
+  /** Request randomness if needed, then draw as soon as it's ready (testnet: next block; Witnet: minutes, keeper finishes). */
+  const drawJuryNow = async () => {
+    if (c.status === 2) {
+      await requestJury();
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const ready = await readContract(wagmiConfig, { address: wr, abi: whosRightAbi, functionName: "isRandomnessReady", args: [caseId] });
+        if (ready) break;
+        if (i === 9) return;
+      }
+    }
+    await sendTx({ address: wr, abi: whosRightAbi, functionName: "drawJury", args: [caseId] });
+  };
   const keeper = useKeeperStatus().data;
   const auto = keeper?.configured && keeper.healthy && !keeper.capped;
   const keeperNote = (
@@ -216,34 +250,49 @@ function StagePanel(props: {
     ) : (
       <p>Waiting for the other person to join ({timeLeft(c.joinDeadline, now)} left).</p>
     );
-  } else if (c.status === 2) {
-    body =
-      now > Number(c.drawDeadline) ? (
-        <><p className="font-semibold">The jury wasn&apos;t called in time.</p>{btn("Cancel and refund", call("cancelExpired"))}</>
-      ) : (
-        <><p className="font-semibold">{c.mode === 1 ? "Ready for the jury." : "Both sides are in. Time to call the jury."}</p>{btn("Call the jury", requestJury)}{keeperNote}</>
-      );
-  } else if (c.status === 3) {
-    body =
-      now > Number(c.drawDeadline) ? (
-        <><p className="font-semibold">The jury couldn&apos;t be drawn in time.</p>{btn("Cancel and refund", call("cancelExpired"))}</>
-      ) : randomnessReady ? (
-        <><p className="font-semibold">The dice are rolled. Draw the jury!</p>{btn("Draw the jury", call("drawJury"))}{keeperNote}</>
-      ) : (
-        <p>Rolling the dice for a fair, random jury… ({timeLeft(c.drawDeadline, now)} left)</p>
-      );
+  } else if (c.status === 2 || c.status === 3) {
+    // One "Draw the jury" moment (requesting randomness is an implementation detail, not a step for people).
+    const expired = now > Number(c.drawDeadline);
+    const short = poolSize < minPool;
+    const rolling = c.status === 3 && !randomnessReady;
+    body = expired ? (
+      <>
+        <p className="font-semibold">The jury couldn&apos;t be drawn in time.</p>
+        {btn("Cancel and refund", call("cancelExpired"))}
+      </>
+    ) : (
+      <>
+        <JuryDraw poolSize={poolSize} minPool={minPool} jurySize={jurySize} drawing={!short} />
+        {short ? (
+          <p className="text-sm">
+            We draw as soon as {minPool - poolSize} more {minPool - poolSize === 1 ? "person joins" : "people join"} the jury
+            pool ({timeLeft(c.drawDeadline, now)} left, or you&apos;re refunded).{" "}
+            <Link href="/cases?join=1" className="font-bold underline">Join the jury</Link> or invite friends to.
+          </p>
+        ) : rolling ? (
+          <p className="text-sm text-ink/70">Rolling the dice for a fair, random jury…</p>
+        ) : (
+          <>{btn("Draw the jury", drawJuryNow)}{keeperNote}</>
+        )}
+      </>
+    );
   } else if (c.status === 4) {
     const revealOpen = now > Number(c.commitDeadline) || c.commits === jurors.length;
     const canFinalize = now > Number(c.revealDeadline) || (revealOpen && c.reveals === c.commits);
+    const allLocked = jurors.length > 0 && c.commits === jurors.length && !canFinalize;
     body = (
       <>
         <JuryMeter total={jurors.length} locked={c.commits} revealed={c.reveals} />
-        <p>
-          {!revealOpen
-            ? `Jurors are locking in secret votes (${timeLeft(c.commitDeadline, now)} left).`
-            : canFinalize
-              ? "Voting is over."
-              : `Jurors are revealing their votes (${timeLeft(c.revealDeadline, now)} left).`}
+        <p className={allLocked || canFinalize ? "font-display text-lg font-extrabold" : ""}>
+          {canFinalize
+            ? c.reveals > 0
+              ? "All votes are in. The verdict lands in a moment."
+              : "Voting is over."
+            : allLocked
+              ? `All ${jurors.length} jurors have locked in 🔒 Revealing now: the verdict lands as soon as they've all revealed.`
+              : !revealOpen
+                ? `${c.commits} of ${jurors.length} jurors have locked in a secret vote (${timeLeft(c.commitDeadline, now)} left).`
+                : `Jurors are revealing their votes (${timeLeft(c.revealDeadline, now)} left).`}
         </p>
         {canFinalize && <>{btn("Announce the verdict", call("finalize"))}{keeperNote}</>}
       </>
@@ -322,39 +371,6 @@ function InviteShare({ caseId, deadline }: { caseId: bigint; deadline: string })
   );
 }
 
-function PrivacyControls({ caseId, isPublic, removalRequested }: { caseId: bigint; isPublic: boolean; removalRequested: boolean }) {
-  const authFetch = useAuthFetch();
-  const [done, setDone] = useState(removalRequested);
-  const [error, setError] = useState<string>();
-  return (
-    <div className="flex flex-col gap-2 text-sm">
-      <p className="text-ink/70">
-        {done
-          ? "This case is off public view."
-          : isPublic
-            ? "Both sides agreed, so this case can be shown publicly."
-            : "This case is shown publicly only after both sides agree."}
-      </p>
-      {!done && (
-        <button
-          className="btn-secondary self-start"
-          onClick={async () => {
-            try {
-              await authFetch(`/api/cases/${caseId}/removal`, { method: "POST" });
-              setDone(true);
-            } catch (e) {
-              setError(friendlyError(e));
-            }
-          }}
-        >
-          Remove from public view
-        </button>
-      )}
-      <ErrorNote>{error}</ErrorNote>
-    </div>
-  );
-}
-
 function ReportCase({ caseId }: { caseId: bigint }) {
   const authFetch = useAuthFetch();
   const [open, setOpen] = useState(false);
@@ -385,45 +401,48 @@ function ReportCase({ caseId }: { caseId: bigint }) {
 }
 
 /** Crowd vote for anyone who isn't a party or a drawn juror. Results appear with the official verdict. */
-function CrowdSection(props: { caseId: bigint; c: ChainCase; myVote: number | null; crowd: { a: number; b: number } | null; total: number }) {
+function CrowdSection(props: {
+  caseId: bigint;
+  c: ChainCase;
+  myVote: number | null;
+  crowd: { a: number; b: number } | null;
+  total: number;
+  /** Parties and drawn jurors see the poll but don't vote in it. */
+  canVote: boolean;
+}) {
   const { caseId, c, crowd, total } = props;
+  const { authenticated } = usePrivy();
+  const { address } = useAccount();
   const { myVote, cast, busy, error } = useCrowdVote(caseId.toString(), props.myVote);
-  const oneSided = c.mode === 1;
   const decided = c.status === 5 || c.status === 6;
+  const oneSided = c.mode === 1;
   const called = calledIt(myVote, c.status, c.verdict);
+  const canVote = props.canVote && !decided && !(authenticated && !address); // wait for the wallet before offering votes
   return (
     <Panel>
       <p className="font-display text-xl font-extrabold">
-        {decided ? "What the crowd said" : oneSided ? "Are they right?" : "Who do you think is right?"}
+        {decided ? "What the public said" : canVote && !myVote ? (oneSided ? "Are they right?" : "Who's right?") : "Public opinion"}
       </p>
-      {!decided && !myVote && (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <button className={`btn text-white ${oneSided ? "bg-side-b" : "bg-side-a"}`} disabled={busy} onClick={() => cast(1)}>
-              {busy ? <Spinner /> : oneSided ? "Right" : "First side"}
-            </button>
-            <button className={`btn text-white ${oneSided ? "bg-side-a" : "bg-side-b"}`} disabled={busy} onClick={() => cast(2)}>
-              {busy ? <Spinner /> : oneSided ? "Wrong" : "Their side"}
-            </button>
-          </div>
-          <Hint>The random jury gives the official verdict. See if you call it.</Hint>
-        </>
-      )}
-      {!decided && myVote && (
-        <p>
-          <strong>You said: {oneSided ? (myVote === 1 ? "Right" : "Wrong") : myVote === 1 ? "first side" : "their side"}.</strong> Crowd results show once the jury decides
-          {total > 1 ? ` · ${total} people have weighed in` : ""}.
+      <Poll
+        labels={oneSided ? ["Right", "Wrong"] : ["First side", "Their side"]}
+        tally={crowd}
+        myVote={myVote}
+        juryPick={c.status === 5 ? c.verdict : null}
+        canVote={canVote}
+        busy={busy}
+        onVote={cast}
+      />
+      {!crowd && !canVote && (
+        <p className="text-sm text-ink/70">
+          {total === 0 ? "No public votes yet." : `${total} ${total === 1 ? "person has" : "people have"} voted.`} Results show
+          with the verdict.
         </p>
       )}
-      {decided && (
-        <>
-          {called !== null && (
-            <p className={`self-start rounded-full px-3 py-1 font-extrabold ${called ? "bg-verdict" : "bg-ink/10"}`}>
-              {called ? "You called it ✓" : "The jury disagreed with you ✗"}
-            </p>
-          )}
-          {crowd ? <CrowdBar a={crowd.a} b={crowd.b} labels={oneSided ? ["Right", "Wrong"] : ["First", "Theirs"]} /> : <Hint>No crowd votes on this one.</Hint>}
-        </>
+      {crowd && <p className="text-sm text-ink/60">{crowd.a + crowd.b} {crowd.a + crowd.b === 1 ? "vote" : "votes"}</p>}
+      {called !== null && (
+        <p className={`self-start rounded-full px-3 py-1 font-extrabold ${called ? "bg-verdict" : "bg-ink/10"}`}>
+          {called ? "You called it ✓" : "The jury disagreed with you ✗"}
+        </p>
       )}
       <ErrorNote>{error}</ErrorNote>
     </Panel>

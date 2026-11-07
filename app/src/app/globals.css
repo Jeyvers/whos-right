@@ -112,3 +112,18 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+
+/* Jury draw: a spotlight chases across the pool's juror tokens while the jury is being picked. */
+@keyframes spotlight {
+  0%, 18%, 100% { background: white; transform: scale(1); }
+  6% { background: var(--color-verdict); transform: scale(1.18); }
+}
+.juror-token.drawing { animation: spotlight 2.2s ease-in-out infinite; }
+@keyframes seat-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.jury-seat.drawing { animation: seat-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .juror-token.drawing, .jury-seat.drawing { animation: none; }
+}

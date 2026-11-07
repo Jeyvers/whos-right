@@ -43,7 +43,7 @@ export default function Terms() {
       <h2>Public cases</h2>
       <p>
         Cases are public: when you sign up, you agree that anyone may read both sides of your cases and the
-        verdict. Either person can take a case off public view at any time from the case page.
+        verdict. Cases stay public. If a case breaks these rules, report it and we&apos;ll review it.
       </p>
 
       <h2>No warranty</h2>
