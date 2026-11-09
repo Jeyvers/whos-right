@@ -24,18 +24,18 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 
 ## Deployments
 
-### Celo Sepolia (chain 11142220) — testnet, deployed 2026-11-05
+### Celo Sepolia (chain 11142220) — testnet, v2 (one-sided cases) deployed 2026-11-07
 
 | Contract | Address |
 |---|---|
-| WhosRight | `0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b` |
+| WhosRight (v2) | `0x94a36d3437daA547c25c4Bf41907dD891e196d14` |
 | TestnetGoodDollar (tG$) | `0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36` |
 | TestnetIdentity | `0x71386420228BF609FA916EE1B676f3A81c803B2F` |
 | InsecureTestnetRandomness | `0x9C8943Cd33FC2e315b54b4CB761b88Dc6f70D804` |
 
 Owner `0x72ded37D6090671231b41ceEAb34f60A0FEA320c`. Jury 5, min pool 7, join window 1 day, draw window 1 hour,
-launched at Standard 500 tG$ / Fast 1,500 tG$ — **still live until the owner calls `setSpeedFee` to move it to
-100 / 300** (or it is redeployed). Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
+Standard 100 tG$ / Fast 300 tG$, cap 1,000. v2 reuses the tG$, Identity and randomness stand-ins from the first
+deployment. The v1 WhosRight (`0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b`, no one-sided cases) is retired. Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
 
 Celo mainnet: not deployed.
 

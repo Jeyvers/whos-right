@@ -7,7 +7,7 @@ set -euo pipefail
 # Resumable: steps already done (funding, faucet, verify, pool) are skipped. Leftover CELO is swept to RETURN_TO.
 D="$(cd "$(dirname "$0")/.." && pwd)/.smoke"
 R=https://forno.celo-sepolia.celo-testnet.org
-WR=0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b
+WR=0x94a36d3437daA547c25c4Bf41907dD891e196d14
 TG=0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36
 ID=0x71386420228BF609FA916EE1B676f3A81c803B2F
 RETURN_TO=0x72ded37D6090671231b41ceEAb34f60A0FEA320c
@@ -101,8 +101,8 @@ done
 
 step "Finalize immediately (reveal stage ended early)"
 tx $F $WR "finalize(uint256)" "$CASE"
-call $WR 'getCase(uint256)((address,address,address,address,address,uint8,uint8,uint8,uint8,bytes32,bytes32,uint256,uint64,uint64,uint256,uint256,uint64,uint64,uint64,uint64,uint64,uint64,uint256,uint8,uint8,uint8,uint8))' "$CASE" > "$D/case.txt"
-python3 -I -c "import sys; t=open(sys.argv[1]).read().strip()[1:-1].split(', '); print('  status',t[6],'verdict',t[7],'(1=A,2=B) refundReason',t[8],'commits',t[23],'reveals',t[24],'votesA',t[25],'votesB',t[26])" "$D/case.txt"
+call $WR 'getCase(uint256)((address,address,address,address,address,uint8,uint8,uint8,uint8,uint8,bytes32,bytes32,uint256,uint64,uint64,uint256,uint256,uint64,uint64,uint64,uint64,uint64,uint64,uint256,uint8,uint8,uint8,uint8))' "$CASE" > "$D/case.txt"
+python3 -I -c "import sys; t=open(sys.argv[1]).read().strip()[1:-1].split(', '); print('  status',t[7],'verdict',t[8],'(1=A,2=B) refundReason',t[9],'commits',t[24],'reveals',t[25],'votesA',t[26],'votesB',t[27])" "$D/case.txt"
 echo "owed per juror:"
 for j in $JLIST; do echo "  $j $(call $WR 'owed(address)(uint256)' "$j")"; done
 

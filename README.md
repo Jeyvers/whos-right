@@ -7,7 +7,7 @@ Two verified humans settle an argument with a randomly drawn jury of verified hu
 | [`contracts/`](contracts/) | Foundry project: `WhosRight.sol`, tests, deploy and smoke scripts, deployments |
 | `app/` | Next.js web app (in progress) |
 
-Launch fees per party: **Standard 100 G$**, **Fast 300 G$** (owner-adjustable up to 10,000 G$).
+Launch fees per party: **Standard 100 G$**, **Fast 300 G$** (owner-adjustable up to 1,000 G$).
 Details, addresses and deployment steps are in [`contracts/README.md`](contracts/README.md).
 
 ## Testnet vs mainnet
