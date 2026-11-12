@@ -37,7 +37,17 @@ Owner `0x72ded37D6090671231b41ceEAb34f60A0FEA320c`. Jury 5, min pool 7, join win
 Standard 100 tG$ / Fast 300 tG$, cap 1,000. v2 reuses the tG$, Identity and randomness stand-ins from the first
 deployment. The v1 WhosRight (`0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b`, no one-sided cases) is retired. Testers: call `faucet()` on TestnetGoodDollar and `verifyMe()` on TestnetIdentity.
 
-Celo mainnet: not deployed.
+### Celo mainnet (chain 42220), deployed 2026-11-10, block 82508249
+
+| Contract | Address |
+|---|---|
+| WhosRight | `0x71386420228bf609fa916ee1b676f3a81c803b2f` |
+| WitnetRandomnessSource | `0xb4e8a6c837744a21b6d94c08fdeb3cf4e0696a36` |
+
+Owner `0x72ded37D6090671231b41ceEAb34f60A0FEA320c` (move to a multisig after launch). Real G$ and GoodDollar Identity,
+Witnet randomness. Jury 5, min pool 11, join window 3 days, draw window 2 hours, Standard 100 G$ / Fast 300 G$,
+cap 1,000. Source verified on Blockscout. Same deployer and nonces as the Sepolia stand-ins, so these two addresses
+match the Sepolia TestnetIdentity and tG$ addresses; they are different contracts on different chains.
 
 ## External addresses (Celo mainnet, chain 42220)
 
