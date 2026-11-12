@@ -30,6 +30,8 @@ export type FeedItem = {
   myVote: number | null;
   /** Viewer is a party or a drawn juror on this case (they don't crowd-vote it). */
   viewerRole: "party" | "juror" | null;
+  /** Comment count, or null where the viewer may not see it (this case's jurors before the verdict). */
+  comments: number | null;
   /** Party wallets (public on-chain anyway), so the client can also recognise your own case instantly. */
   parties: string[];
 };

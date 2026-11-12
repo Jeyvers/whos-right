@@ -28,6 +28,7 @@ import { useCrowdVote } from "@/hooks/useCrowdVote";
 import { calledIt } from "@/lib/crowd";
 import { Loading } from "@/components/Loading";
 import { Spinner } from "@/components/Loading";
+import { Comments } from "@/components/Comments";
 
 export function CaseView() {
   const { id } = useParams<{ id: string }>();
@@ -119,6 +120,8 @@ export function CaseView() {
 
       {waitingOnKeeper && <KeeperBanner />}
       <StagePanel caseId={caseId} c={c} jurors={jurors} randomnessReady={randomnessReady} isA={isA} now={now} onDone={refetch} />
+
+      {c.status >= 2 && <Comments caseId={caseId.toString()} />}
 
       <ReportCase caseId={caseId} />
 

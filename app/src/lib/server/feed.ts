@@ -2,6 +2,7 @@ import "server-only";
 import type { Address } from "viem";
 import { whosRightAbi } from "@/lib/abi/whosRight";
 import { sameAddress, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
+import { commentAccess } from "@/lib/comments";
 import type { FeedItem, FeedPage } from "@/lib/crowd";
 import { dataKey, network } from "@/lib/network";
 import { publicClient } from "./chain";
@@ -45,10 +46,35 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
     if (joined.length === 0) continue;
     const idStrs = joined.map(({ id }) => id.toString());
 
-    const [{ data: sides }, { data: flags }, { data: votes }] = await Promise.all([
+    // Jurors are matched by verified person too (any wallet of the same human), so fetch roots for live juries.
+    const v0 = opts.viewer;
+    const liveJuries = v0?.person ? joined.filter(({ c, jurors }) => c.status === 4 && jurors.length > 0) : [];
+    const rootReads = liveJuries.length
+      ? ((await publicClient.multicall({
+          contracts: liveJuries.flatMap(({ id, jurors }) =>
+            jurors.map((j) => ({ address: wr, abi: whosRightAbi, functionName: "getJurorVote", args: [id, j] }) as const),
+          ),
+          allowFailure: false,
+        })) as { root: Address }[])
+      : [];
+    const jurorRootsByCase = new Map<string, string[]>();
+    let k = 0;
+    for (const { id, jurors } of liveJuries) {
+      jurorRootsByCase.set(id.toString(), rootReads.slice(k, k + jurors.length).map((r) => r.root.toLowerCase()));
+      k += jurors.length;
+    }
+
+    const [{ data: sides }, { data: flags }, { data: votes }, { data: commentRows }] = await Promise.all([
       db().from("sides").select("case_id, role, body, title, content_hash, public_consent").eq("network", dataKey).in("case_id", idStrs),
       db().from("case_flags").select("case_id, hidden, removal_requested_at").eq("network", dataKey).in("case_id", idStrs),
       db().from("crowd_votes").select("case_id, person, vote").eq("network", dataKey).in("case_id", idStrs),
+      db()
+        .from("comments")
+        .select("case_id")
+        .eq("network", dataKey)
+        .in("case_id", idStrs)
+        .eq("hidden", false)
+        .is("deleted_at", null),
     ]);
 
     for (const { id, c, jurors } of joined) {
@@ -66,7 +92,10 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
       const v = opts.viewer;
       const mine = v?.person ? caseVotes.find((x) => x.person === v.person)?.vote ?? null : null;
       const isParty = Boolean(v?.wallets.some((w) => sameAddress(w, c.partyA) || sameAddress(w, c.partyB)));
-      const isJuror = Boolean(v?.wallets.some((w) => jurors.some((j) => sameAddress(j, w))));
+      const isJuror = Boolean(
+        v?.wallets.some((w) => jurors.some((j) => sameAddress(j, w))) || (v?.person && jurorRootsByCase.get(key)?.includes(v.person)),
+      );
+      const commentsVisible = commentAccess(c.status, true, { signedIn: Boolean(v), verified: Boolean(v?.person), juror: isJuror }).showCount;
 
       items.push({
         caseId: key,
@@ -90,6 +119,7 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
         crowdTotal: tally.a + tally.b,
         myVote: mine,
         viewerRole: isParty ? "party" : isJuror ? "juror" : null,
+        comments: commentsVisible ? commentRows?.filter((r) => String(r.case_id) === key).length ?? 0 : null,
         parties: [c.partyA, c.partyB].filter((p) => p !== ZERO_ADDRESS),
       });
       if (items.length >= limit) break;

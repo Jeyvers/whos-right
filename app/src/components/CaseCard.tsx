@@ -116,9 +116,16 @@ export function CaseCard({ it }: { it: FeedItem }) {
             {votes} {votes === 1 ? "vote" : "votes"}
             {isParty && !decided ? " · your case" : ""}
           </span>
+          <span className="flex items-center gap-1">
+          {it.comments !== null && (
+            <Link href={`/c/${it.caseId}#comments`} className="rounded-full px-2 py-1 font-semibold hover:bg-lilac" aria-label={`${it.comments} comments`}>
+              💬 {it.comments}
+            </Link>
+          )}
           <button onClick={share} className="rounded-full px-2 py-1 font-semibold hover:bg-lilac" aria-label="Share this case">
             ↗ Share
           </button>
+          </span>
         </footer>
       </div>
     </article>

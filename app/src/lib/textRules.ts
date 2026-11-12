@@ -1,3 +1,4 @@
+import { MAX_COMMENT_LENGTH } from "./comments";
 import { MAX_SIDE_LENGTH, MAX_TITLE_LENGTH, MIN_SIDE_LENGTH, MIN_TITLE_LENGTH } from "./content";
 
 export type TextCheck = { errors: string[]; warnings: string[] };
@@ -39,6 +40,17 @@ export function checkSideText(text: string, opts: RuleOptions = {}): TextCheck {
   if (t.length < MIN_SIDE_LENGTH) errors.push(`Write at least ${MIN_SIDE_LENGTH} characters.`);
   if (t.length > MAX_SIDE_LENGTH) errors.push(`Keep it under ${MAX_SIDE_LENGTH} characters.`);
   contentRules(t, Boolean(opts.strict), errors, warnings);
+  return { errors, warnings };
+}
+
+/** Comments: contact details and links are blocked; names only warn. */
+export function checkComment(text: string): TextCheck {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const t = text.trim();
+  if (!t) errors.push("Write something first.");
+  if (t.length > MAX_COMMENT_LENGTH) errors.push(`Keep it under ${MAX_COMMENT_LENGTH} characters.`);
+  contentRules(t, false, errors, warnings);
   return { errors, warnings };
 }
 
