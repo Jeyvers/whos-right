@@ -64,7 +64,9 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     name: "celo",
     label: "Celo",
     chain: celo,
-    restMyCase: "0x71386420228BF609FA916EE1B676f3A81c803B2F", // deployed 2026-11-10, block 82508249
+    restMyCase: "0xCbF0AD90F0F48BBf5367Be07FED166d07bCE3f6b", // RestMyCase, min pool 5, deployed 2026-11-13, block 82683084
+    // The first mainnet deployment (named WhosRight, min pool 11). Holds refunds from cases #1-2 until withdrawn.
+    legacyContracts: ["0x71386420228BF609FA916EE1B676f3A81c803B2F"],
     goodDollar: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
     identity: "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42",
     ubiScheme: "0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1", // GoodDollar UBISchemeV2 on Celo (citizen-sdk chainConfigs)
