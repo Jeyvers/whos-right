@@ -8,7 +8,7 @@ import { Hint } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { WithdrawPanel } from "@/components/WithdrawPanel";
 import { useNow } from "@/hooks/useNow";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { SPEED, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { formatG } from "@/lib/format";
 import { myCredit, myRole, myStage, STAGE_LABEL, type MyRole, type MyStage } from "@/lib/myCases";
@@ -74,15 +74,15 @@ const STAGE_STYLE: Record<MyStage, string> = {
 function CaseList() {
   const { address } = useAccount();
   const now = useNow(30_000);
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
   const me = address ?? ZERO_ADDRESS;
-  const count = useReadContract({ address: wr, abi: whosRightAbi, functionName: "caseCount", query: { refetchInterval: 20_000 } });
+  const count = useReadContract({ address: wr, abi: restMyCaseAbi, functionName: "caseCount", query: { refetchInterval: 20_000 } });
   const n = Number(count.data ?? 0n);
   const ids = Array.from({ length: Math.min(n, SCAN) }, (_, i) => BigInt(n - i));
   const reads = useReadContracts({
     contracts: ids.flatMap((id) => [
-      { address: wr, abi: whosRightAbi, functionName: "getCase" as const, args: [id] as const },
-      { address: wr, abi: whosRightAbi, functionName: "getJurorVote" as const, args: [id, me] as const },
+      { address: wr, abi: restMyCaseAbi, functionName: "getCase" as const, args: [id] as const },
+      { address: wr, abi: restMyCaseAbi, functionName: "getJurorVote" as const, args: [id, me] as const },
     ]),
     allowFailure: false,
     query: { enabled: ids.length > 0 && Boolean(address), refetchInterval: 20_000 },

@@ -1,4 +1,4 @@
-# Who's Right? — app
+# Rest My Case — app
 
 Next.js (App Router) + TypeScript + Tailwind, wagmi + viem, Privy login. Phone-first.
 

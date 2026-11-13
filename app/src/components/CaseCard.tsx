@@ -59,8 +59,8 @@ export function CaseCard({ it }: { it: FeedItem }) {
 
   async function share() {
     const url = `${window.location.origin}/c/${it.caseId}`;
-    const text = it.title ? `Who's right? "${it.title}"` : "Who's right? Help decide this case";
-    if (navigator.share) await navigator.share({ title: "Who's Right?", text, url }).catch(() => {});
+    const text = it.title ? `Which side wins? "${it.title}"` : "Which side wins? Help decide this case";
+    if (navigator.share) await navigator.share({ title: "Rest My Case", text, url }).catch(() => {});
     else await navigator.clipboard.writeText(url).catch(() => {});
   }
 

@@ -1,6 +1,6 @@
 import "server-only";
 import * as webpush from "web-push";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { timeLeft, type ChainCase } from "@/lib/cases";
 import { dataKey, network } from "@/lib/network";
 import { publicClient } from "./chain";
@@ -100,15 +100,15 @@ export async function alertJuror(kind: AlertKind, caseId: bigint, wallet: string
  * revealed, once the reveal stage is open.
  */
 export async function alertJurorsFor(caseId: bigint, c: ChainCase, jurors: readonly string[], now: bigint): Promise<void> {
-  if (c.status !== 4 || jurors.length === 0 || !network.whosRight) return;
+  if (c.status !== 4 || jurors.length === 0 || !network.restMyCase) return;
   const nowSec = Number(now);
   const revealOpen = now > c.commitDeadline || c.commits === jurors.length;
   const votes = revealOpen
     ? ((await publicClient
         .multicall({
           contracts: jurors.map((j) => ({
-            address: network.whosRight!,
-            abi: whosRightAbi,
+            address: network.restMyCase!,
+            abi: restMyCaseAbi,
             functionName: "getJurorVote" as const,
             args: [caseId, j as `0x${string}`] as const,
           })),

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-/// @notice Randomness adapter used by WhosRight. Fixed at WhosRight deployment.
+/// @notice Randomness adapter used by RestMyCase. Fixed at RestMyCase deployment.
 interface IRandomnessSource {
     /// @notice Native-token (CELO) fee required to request randomness at the given gas price.
     function fee(uint256 gasPrice) external view returns (uint256);

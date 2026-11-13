@@ -20,7 +20,7 @@ import {IRandomnessSource} from "./interfaces/IRandomnessSource.sol";
 /// @dev Owner powers (complete list): pause/unpause NEW cases, change the fee for NEW cases (<= MAX_CASE_FEE),
 ///      and transfer/renounce ownership. The owner cannot move funds, change verdicts, or block
 ///      joins, votes, refunds or withdrawals. All payouts are pulled via `withdraw()`.
-contract WhosRight is Ownable2Step, ReentrancyGuard {
+contract RestMyCase is Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------------------------------
@@ -693,7 +693,7 @@ contract WhosRight is Ownable2Step, ReentrancyGuard {
     /// @notice Message B's client signs (EIP-191 personal_sign) with the invite key.
     function joinDigest(uint256 caseId, address joiner) public view returns (bytes32) {
         return MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encode("WhosRight.join", block.chainid, address(this), caseId, joiner))
+            keccak256(abi.encode("RestMyCase.join", block.chainid, address(this), caseId, joiner))
         );
     }
 

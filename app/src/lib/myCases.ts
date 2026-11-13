@@ -21,7 +21,7 @@ export const STAGE_LABEL: Record<MyStage, string> = {
   refunded: "Refunded",
 };
 
-/** WhosRight.RefundReason values that mean "a deadline ran out". */
+/** RestMyCase.RefundReason values that mean "a deadline ran out". */
 const EXPIRED_REASONS = new Set([1 /* NotJoined */, 4 /* DrawTimeout */]);
 const TIE_REASON = 6;
 

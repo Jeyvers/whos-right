@@ -1,7 +1,7 @@
 import { getAddress, type Address } from "viem";
 import { network } from "./network";
 
-/** WhosRight.MAX_CASE_FEE: no approval may ever exceed it. */
+/** RestMyCase.MAX_CASE_FEE: no approval may ever exceed it. */
 export const MAX_CASE_FEE = 10_000n * 10n ** 18n;
 
 export type CallDescriptor = { address: Address; functionName: string; args?: readonly unknown[]; value?: bigint };
@@ -14,14 +14,14 @@ export type CallDescriptor = { address: Address; functionName: string; args?: re
  * every action. Default is "show the pop-up": anything not explicitly allowed here gets one.
  *
  * Allowed (testnet, built-in wallet):
- *  - any call to WhosRight with no CELO attached (it can only take the case's locked fee, which the approval caps)
- *  - G$ approve(spender = WhosRight, amount <= the fee cap). Never unlimited, never another spender.
+ *  - any call to RestMyCase with no CELO attached (it can only take the case's locked fee, which the approval caps)
+ *  - G$ approve(spender = RestMyCase, amount <= the fee cap). Never unlimited, never another spender.
  *  - the testnet stand-ins: faucet() and verifyMe()
  * Everything else (transfers, other contracts, other spenders, larger amounts, attached CELO) shows the pop-up.
  */
 export function maySignSilently(call: CallDescriptor): boolean {
   const t = network.testnet;
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   if (!t || !wr) return false;
   const to = getAddress(call.address);
   const value = call.value ?? 0n;

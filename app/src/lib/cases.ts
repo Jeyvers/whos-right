@@ -1,16 +1,16 @@
 import type { Address } from "viem";
 
 export const SPEED = { Standard: 0, Fast: 1 } as const;
-/** Mirrors WhosRight.Mode. OneSided: only A pays, no join step, the jury votes Right (1) or Wrong (2). */
+/** Mirrors RestMyCase.Mode. OneSided: only A pays, no join step, the jury votes Right (1) or Wrong (2). */
 export const MODE = { TwoSided: 0, OneSided: 1 } as const;
 export type ModeValue = (typeof MODE)[keyof typeof MODE];
 export type SpeedValue = (typeof SPEED)[keyof typeof SPEED];
 
-/** Mirrors WhosRight.Status */
+/** Mirrors RestMyCase.Status */
 export const STATUS = ["None", "Open", "Joined", "Drawing", "Voting", "Resolved", "Refunded"] as const;
 export type StatusName = (typeof STATUS)[number];
 
-/** Mirrors WhosRight.RefundReason */
+/** Mirrors RestMyCase.RefundReason */
 export const REFUND_REASON: Record<number, string> = {
   1: "The other person didn't join in time.",
   2: "Not enough jurors were in the pool.",

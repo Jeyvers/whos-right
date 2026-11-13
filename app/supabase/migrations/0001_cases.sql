@@ -1,4 +1,4 @@
--- Who's Right? app tables. Run once in the Supabase SQL editor.
+-- Rest My Case app tables. Run once in the Supabase SQL editor.
 -- Row Level Security is ON with NO policies: browsers (publishable key) can read/write nothing.
 -- Every read and write goes through the app's server routes, which use the secret key server-side only.
 

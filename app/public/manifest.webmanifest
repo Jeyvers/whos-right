@@ -1,6 +1,6 @@
 {
-  "name": "Who's Right?",
-  "short_name": "Who's Right?",
+  "name": "Rest My Case",
+  "short_name": "Rest My Case",
   "description": "Settle an argument with a jury of real people. 18+.",
   "start_url": "/cases",
   "display": "standalone",

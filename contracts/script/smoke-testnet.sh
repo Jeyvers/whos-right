@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end smoke test of WhosRight on Celo Sepolia using throwaway wallets (testnet only).
+# End-to-end smoke test of RestMyCase on Celo Sepolia using throwaway wallets (testnet only).
 set -euo pipefail
 # Throwaway wallet keys live in .smoke/wallets.json (git-ignored). Create with:
 #   mkdir -p .smoke && cast wallet new --number 10 --json > .smoke/wallets.json

@@ -2,14 +2,14 @@
 
 import { useAccount, useBalance, useReadContracts } from "wagmi";
 import { erc20Abi, identityAbi } from "@/lib/abi/tokens";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { ZERO_ADDRESS } from "@/lib/cases";
 import { network } from "@/lib/network";
 
 /** Everything about the signed-in wallet that the screens need. */
 export function useMe() {
   const { address } = useAccount();
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   const enabled = Boolean(address && wr);
   const who = address ?? ZERO_ADDRESS;
   const reads = useReadContracts({
@@ -17,8 +17,8 @@ export function useMe() {
       { address: network.goodDollar, abi: erc20Abi, functionName: "balanceOf", args: [who] },
       { address: network.goodDollar, abi: erc20Abi, functionName: "allowance", args: [who, wr ?? ZERO_ADDRESS] },
       { address: network.identity, abi: identityAbi, functionName: "getWhitelistedRoot", args: [who] },
-      { address: wr, abi: whosRightAbi, functionName: "owed", args: [who] },
-      { address: wr, abi: whosRightAbi, functionName: "activeEntryOfWallet", args: [who] },
+      { address: wr, abi: restMyCaseAbi, functionName: "owed", args: [who] },
+      { address: wr, abi: restMyCaseAbi, functionName: "activeEntryOfWallet", args: [who] },
     ],
     allowFailure: false,
     query: { enabled, refetchInterval: 15_000 },

@@ -37,7 +37,7 @@ export function CasesHome() {
   return (
     <Page>
       <div className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl font-extrabold sm:text-4xl">{tab === "feed" ? "Who's right here?" : "My cases"}</h1>
+        <h1 className="font-display text-3xl font-extrabold sm:text-4xl">{tab === "feed" ? "You decide" : "My cases"}</h1>
         <p className="text-ink/70">
           {tab === "feed"
             ? "Read both sides and pick. A random jury of verified people gives the official verdict; see if you called it."

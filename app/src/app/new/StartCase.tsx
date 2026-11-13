@@ -12,7 +12,7 @@ import { ErrorNote, Page, Title } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { usePayFee } from "@/hooks/usePayFee";
 import { useTx } from "@/hooks/useTx";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { MODE, SPEED, type ModeValue, type SpeedValue } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
@@ -44,12 +44,12 @@ function StartCaseForm() {
   const oneSided = mode === MODE.OneSided;
   const [attempted, setAttempted] = useState(false);
 
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
   const fees = useReadContracts({
     contracts: [
-      { address: wr, abi: whosRightAbi, functionName: "speedFee", args: [SPEED.Standard] },
-      { address: wr, abi: whosRightAbi, functionName: "speedFee", args: [SPEED.Fast] },
-      { address: wr, abi: whosRightAbi, functionName: "newCasesPaused" },
+      { address: wr, abi: restMyCaseAbi, functionName: "speedFee", args: [SPEED.Standard] },
+      { address: wr, abi: restMyCaseAbi, functionName: "speedFee", args: [SPEED.Fast] },
+      { address: wr, abi: restMyCaseAbi, functionName: "newCasesPaused" },
     ],
     allowFailure: false,
   });
@@ -88,11 +88,11 @@ function StartCaseForm() {
       await pay(fee, async () => {
         const receipt = await sendTx({
           address: wr,
-          abi: whosRightAbi,
+          abi: restMyCaseAbi,
           functionName: "openCase",
           args: [speed, mode, side.contentHash, inviteSigner],
         });
-        const [opened] = parseEventLogs({ abi: whosRightAbi, eventName: "CaseOpened", logs: receipt.logs });
+        const [opened] = parseEventLogs({ abi: restMyCaseAbi, eventName: "CaseOpened", logs: receipt.logs });
         const caseId = opened.args.caseId;
         if (invitePk) saveInviteKey(caseId, invitePk);
         await authFetch(`/api/cases/${caseId}/link`, { method: "POST", body: JSON.stringify({ sideId: side.sideId }) });

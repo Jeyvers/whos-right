@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {WhosRight} from "../src/WhosRight.sol";
+import {RestMyCase} from "../src/RestMyCase.sol";
 import {IIdentity} from "../src/interfaces/IIdentity.sol";
 import {IRandomnessSource} from "../src/interfaces/IRandomnessSource.sol";
 import {InsecureTestnetRandomness} from "../src/randomness/InsecureTestnetRandomness.sol";
@@ -21,7 +21,7 @@ import {TestnetIdentity} from "../src/testnet/TestnetIdentity.sol";
 contract DeployTestnet is Script {
     uint256 internal constant CELO_SEPOLIA = 11142220;
 
-    function run() external returns (WhosRight wr) {
+    function run() external returns (RestMyCase wr) {
         require(block.chainid == CELO_SEPOLIA, "DeployTestnet: not Celo Sepolia");
 
         vm.startBroadcast();
@@ -34,8 +34,8 @@ contract DeployTestnet is Script {
         TestnetIdentity identity = identityAddr == address(0) ? new TestnetIdentity() : TestnetIdentity(identityAddr);
         InsecureTestnetRandomness rng =
             rngAddr == address(0) ? new InsecureTestnetRandomness() : InsecureTestnetRandomness(rngAddr);
-        wr = new WhosRight(
-            WhosRight.Config({
+        wr = new RestMyCase(
+            RestMyCase.Config({
                 token: IERC20(address(token)),
                 identity: IIdentity(address(identity)),
                 randomnessSource: IRandomnessSource(address(rng)),
@@ -53,7 +53,7 @@ contract DeployTestnet is Script {
         console.log("TestnetGoodDollar   ", address(token));
         console.log("TestnetIdentity     ", address(identity));
         console.log("InsecureRandomness  ", address(rng));
-        console.log("WhosRight           ", address(wr));
+        console.log("RestMyCase           ", address(wr));
         console.log("owner               ", deployer);
     }
 }

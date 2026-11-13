@@ -6,7 +6,7 @@ import {WitnetRandomnessSource, IWitnetRandomnessV2} from "../src/randomness/Wit
 import {InsecureTestnetRandomness} from "../src/randomness/InsecureTestnetRandomness.sol";
 import {MockWitnet} from "./mocks/MockWitnet.sol";
 import {BaseTest} from "./utils/BaseTest.sol";
-import {WhosRight} from "../src/WhosRight.sol";
+import {RestMyCase} from "../src/RestMyCase.sol";
 import {IRandomnessSource} from "../src/interfaces/IRandomnessSource.sol";
 
 contract WitnetSourceTest is Test {
@@ -93,17 +93,17 @@ contract InsecureSourceTest is Test {
     }
 }
 
-/// @notice End-to-end through WhosRight with the Witnet adapter (mocked Witnet).
-contract WhosRightWitnetTest is BaseTest {
+/// @notice End-to-end through RestMyCase with the Witnet adapter (mocked Witnet).
+contract RestMyCaseWitnetTest is BaseTest {
     MockWitnet internal witnet;
-    WhosRight internal wrw;
+    RestMyCase internal wrw;
 
     function setUp() public override {
         super.setUp();
         witnet = new MockWitnet();
-        WhosRight.Config memory cfg = _config(JURY, MIN_POOL);
+        RestMyCase.Config memory cfg = _config(JURY, MIN_POOL);
         cfg.randomnessSource = IRandomnessSource(address(new WitnetRandomnessSource(IWitnetRandomnessV2(address(witnet)))));
-        wrw = new WhosRight(cfg);
+        wrw = new RestMyCase(cfg);
         for (uint256 i; i < pool.length; ++i) {
             vm.prank(pool[i]);
             wrw.joinPool();
@@ -117,10 +117,10 @@ contract WhosRightWitnetTest is BaseTest {
 
     function test_FullFlowWithWitnetAdapter() public {
         vm.prank(alice);
-        uint256 caseId = wrw.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, CONTENT_A, inviteSigner);
+        uint256 caseId = wrw.openCase(RestMyCase.Speed.Standard, RestMyCase.Mode.TwoSided, CONTENT_A, inviteSigner);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(invitePk, _joinDigest(address(wrw), caseId, bob));
         vm.prank(bob);
-        wrw.joinCase(caseId, CONTENT_B, WhosRight.Speed.Standard, FEE, abi.encodePacked(r, s, v));
+        wrw.joinCase(caseId, CONTENT_B, RestMyCase.Speed.Standard, FEE, abi.encodePacked(r, s, v));
 
         address keeper = makeAddr("keeper");
         vm.deal(keeper, 1 ether);

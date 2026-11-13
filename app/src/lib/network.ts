@@ -21,8 +21,13 @@ export type NetworkConfig = {
   name: NetworkName;
   label: string;
   chain: typeof celo | typeof celoSepolia;
-  /** WhosRight contract. Undefined until deployed on this network. */
-  whosRight: Address | undefined;
+  /** RestMyCase contract. Undefined until deployed on this network. */
+  restMyCase: Address | undefined;
+  /**
+   * Earlier contracts on this network that may still hold refunds or juror pay. The app only offers withdraw() on
+   * them; cases, the pool and new fees all use `restMyCase`.
+   */
+  legacyContracts?: Address[];
   /** The G$ token the contract charges in. */
   goodDollar: Address;
   /** The Identity contract the contract checks. */
@@ -41,7 +46,7 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     name: "celo-sepolia",
     label: "Celo Sepolia (test)",
     chain: celoSepolia,
-    whosRight: "0x94a36d3437daA547c25c4Bf41907dD891e196d14", // v2 (one-sided cases), deployed 2026-11-07
+    restMyCase: "0x94a36d3437daA547c25c4Bf41907dD891e196d14", // v2 (one-sided cases), deployed 2026-11-07
     goodDollar: "0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36",
     identity: "0x71386420228BF609FA916EE1B676f3A81c803B2F",
     rpcUrls: [
@@ -59,7 +64,7 @@ const NETWORKS: Record<NetworkName, NetworkConfig> = {
     name: "celo",
     label: "Celo",
     chain: celo,
-    whosRight: "0x71386420228BF609FA916EE1B676f3A81c803B2F", // deployed 2026-11-10, block 82508249
+    restMyCase: "0x71386420228BF609FA916EE1B676f3A81c803B2F", // deployed 2026-11-10, block 82508249
     goodDollar: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
     identity: "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42",
     ubiScheme: "0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1", // GoodDollar UBISchemeV2 on Celo (citizen-sdk chainConfigs)
@@ -82,10 +87,10 @@ export const network = resolveNetwork();
 
 /**
  * Key for everything stored per CONTRACT (case text, flags, votes, crowd votes, keeper progress, invite keys):
- * the network plus the WhosRight address. A redeploy starts at case #1 again, so this keeps a new contract's
+ * the network plus the RestMyCase address. A redeploy starts at case #1 again, so this keeps a new contract's
  * cases from ever mixing with an old one's. Per-wallet things (gas top-up limits, keeper spend) stay per network.
  */
-export const dataKey = `${network.name}:${(network.whosRight ?? "undeployed").toLowerCase()}`;
+export const dataKey = `${network.name}:${(network.restMyCase ?? "undeployed").toLowerCase()}`;
 
 /**
  * viem transport across the network's public RPCs. `rank` keeps re-measuring them and prefers the fastest, most

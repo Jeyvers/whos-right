@@ -9,9 +9,16 @@ import { dataKey } from "./network";
  * repeatable): a random key stored in this browser and backed up on our server, which means the operator could
  * work out the vote before reveal. The juror is told when the fallback is used.
  */
-export function voteKeyMessage(caseId: bigint): string {
-  return `Who's Right? private vote key\nCase ${caseId} on ${dataKey}\n\nSigning is free. It creates the secret key that hides your vote until the reveal.`;
+export function voteKeyMessage(caseId: bigint, brand: string = VOTE_KEY_BRAND): string {
+  return `${brand} private vote key\nCase ${caseId} on ${dataKey}\n\nSigning is free. It creates the secret key that hides your vote until the reveal.`;
 }
+
+const VOTE_KEY_BRAND = "Rest My Case";
+/**
+ * The app's name before the rename. Votes committed before it were keyed with this wording, so reveal tries it last.
+ * Safe to delete once no case committed under the old name is still waiting on reveals.
+ */
+export const LEGACY_VOTE_KEY_BRAND = "Who's Right?";
 
 export function commitmentOf(caseId: bigint, juror: Address, vote: number, salt: Hex): Hex {
   return keccak256(

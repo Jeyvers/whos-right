@@ -1,6 +1,6 @@
 import "server-only";
 import { keccak256, toHex, type Address } from "viem";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { sameAddress, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { commentAccess, type CommentAccess, type CommentBadge } from "@/lib/comments";
 import { dataKey, network } from "@/lib/network";
@@ -41,10 +41,10 @@ export async function commentContext(request: Request, caseId: bigint): Promise<
     c.status >= 4 ? readJurors(caseId) : Promise.resolve([] as readonly Address[]),
     user ? verifiedPerson(user.wallets) : Promise.resolve(null),
   ]);
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
   const jurorVotes = jurors.length
     ? ((await publicClient.multicall({
-        contracts: jurors.map((j) => ({ address: wr, abi: whosRightAbi, functionName: "getJurorVote", args: [caseId, j] }) as const),
+        contracts: jurors.map((j) => ({ address: wr, abi: restMyCaseAbi, functionName: "getJurorVote", args: [caseId, j] }) as const),
         allowFailure: false,
       })) as { root: Address }[])
     : [];

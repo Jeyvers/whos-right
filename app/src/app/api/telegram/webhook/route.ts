@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f]{24}$/.test(code)) {
       await telegram("sendMessage", {
         chat_id: chatId,
-        text: "Hi! To get jury alerts, open Who's Right? → Account → Telegram → Connect.",
+        text: "Hi! To get jury alerts, open Rest My Case → Account → Telegram → Connect.",
       });
       return Response.json({ ok: true });
     }

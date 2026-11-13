@@ -1,7 +1,7 @@
-# Who's Right?
+# Rest My Case
 
 Stuck in an argument? Put it to a jury. Five randomly drawn, verified humans read the story, vote in secret and
-say who's right. Fees are paid in G$ on Celo; jurors who vote on time share them, and if there's no verdict
+say which side wins. Fees are paid in G$ on Celo; jurors who vote on time share them, and if there's no verdict
 everyone gets their money back.
 
 ## What it's for
@@ -30,7 +30,7 @@ Anyone verified can also join the jury pool for free, get drawn at random and ea
 
 | Folder | What |
 |---|---|
-| [`contracts/`](contracts/) | Foundry project: `WhosRight.sol`, tests, deploy and smoke scripts, deployments |
+| [`contracts/`](contracts/) | Foundry project: `RestMyCase.sol`, tests, deploy and smoke scripts, deployments |
 | [`app/`](app/) | Next.js web app |
 
 Launch fees per party: **Standard 100 G$**, **Fast 300 G$** (owner-adjustable up to 1,000 G$).

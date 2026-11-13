@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {WhosRight} from "../../src/WhosRight.sol";
+import {RestMyCase} from "../../src/RestMyCase.sol";
 import {IIdentity} from "../../src/interfaces/IIdentity.sol";
 import {IRandomnessSource} from "../../src/interfaces/IRandomnessSource.sol";
 import {WitnetRandomnessSource, IWitnetRandomnessV2} from "../../src/randomness/WitnetRandomnessSource.sol";
@@ -41,7 +41,7 @@ contract CeloForkTest is Test {
 
     uint256 internal constant FEE = 100e18;
     uint256 internal constant INVITE_PK = 0xA11CE;
-    WhosRight internal wr;
+    RestMyCase internal wr;
     MockRandomness internal rng;
     address internal partyA;
     address internal partyB;
@@ -53,8 +53,8 @@ contract CeloForkTest is Test {
         }
         vm.createSelectFork("celo", FORK_BLOCK);
         rng = new MockRandomness(); // Witnet cannot resolve inside a fork; tested separately below
-        wr = new WhosRight(
-            WhosRight.Config({
+        wr = new RestMyCase(
+            RestMyCase.Config({
                 token: GD,
                 identity: IIdentity(IDENTITY),
                 randomnessSource: IRandomnessSource(address(rng)),
@@ -90,7 +90,7 @@ contract CeloForkTest is Test {
 
     function _sig(uint256 caseId, address joiner) internal view returns (bytes memory) {
         bytes32 d = MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encode("WhosRight.join", block.chainid, address(wr), caseId, joiner))
+            keccak256(abi.encode("RestMyCase.join", block.chainid, address(wr), caseId, joiner))
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(INVITE_PK, d);
         return abi.encodePacked(r, s, v);
@@ -106,10 +106,10 @@ contract CeloForkTest is Test {
     function test_Fork_FullFlowWithRealGoodDollarAndIdentity() public {
         uint256 balA = GD.balanceOf(partyA);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(RestMyCase.Speed.Standard, RestMyCase.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, partyB);
         vm.prank(partyB);
-        wr.joinCase(caseId, keccak256("B"), WhosRight.Speed.Standard, FEE, sig);
+        wr.joinCase(caseId, keccak256("B"), RestMyCase.Speed.Standard, FEE, sig);
         assertEq(GD.balanceOf(address(wr)), 2 * FEE, "real G$ received in full (no transfer fee)");
         assertEq(GD.balanceOf(partyA), balA - FEE);
 
@@ -130,7 +130,7 @@ contract CeloForkTest is Test {
             wr.revealVote(caseId, i < 3 ? 2 : 1, bytes32(i));
         }
         wr.finalize(caseId);
-        assertEq(uint8(wr.getCase(caseId).verdict), uint8(WhosRight.Verdict.PartyB));
+        assertEq(uint8(wr.getCase(caseId).verdict), uint8(RestMyCase.Verdict.PartyB));
 
         for (uint256 i; i < 5; ++i) {
             uint256 before = GD.balanceOf(j[i]);
@@ -147,7 +147,7 @@ contract CeloForkTest is Test {
         GD.transfer(partyA, 300e18); // the Fast fee is more than setUp's 2 x Standard funding
         uint256 balA = GD.balanceOf(partyA);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(WhosRight.Speed.Fast, WhosRight.Mode.OneSided, keccak256("A only"), address(0));
+        uint256 caseId = wr.openCase(RestMyCase.Speed.Fast, RestMyCase.Mode.OneSided, keccak256("A only"), address(0));
         uint256 fee = wr.getCase(caseId).fee;
         assertEq(GD.balanceOf(partyA), balA - fee, "only A pays");
         assertEq(GD.balanceOf(address(wr)), fee);
@@ -168,7 +168,7 @@ contract CeloForkTest is Test {
             wr.revealVote(caseId, i < 3 ? 2 : 1, bytes32(i + 100));
         }
         wr.finalize(caseId);
-        assertEq(uint8(wr.getCase(caseId).verdict), uint8(WhosRight.Verdict.PartyB), "Wrong");
+        assertEq(uint8(wr.getCase(caseId).verdict), uint8(RestMyCase.Verdict.PartyB), "Wrong");
         for (uint256 i; i < 5; ++i) {
             uint256 before = GD.balanceOf(j[i]);
             vm.prank(j[i]);
@@ -188,24 +188,24 @@ contract CeloForkTest is Test {
 
         _fund(alt);
         vm.prank(partyA);
-        uint256 caseId = wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
+        uint256 caseId = wr.openCase(RestMyCase.Speed.Standard, RestMyCase.Mode.TwoSided, keccak256("A"), vm.addr(INVITE_PK));
         bytes memory sig = _sig(caseId, alt);
         vm.prank(alt);
-        vm.expectRevert(WhosRight.SameIdentity.selector);
-        wr.joinCase(caseId, keccak256("B"), WhosRight.Speed.Standard, FEE, sig);
+        vm.expectRevert(RestMyCase.SameIdentity.selector);
+        wr.joinCase(caseId, keccak256("B"), RestMyCase.Speed.Standard, FEE, sig);
 
         // ...and cannot take a second jury seat for the same person.
         vm.prank(humans[2]);
         IIdentityV4(IDENTITY).connectAccount(makeAddr("alt2"));
         vm.prank(makeAddr("alt2"));
-        vm.expectRevert(WhosRight.AlreadyInPool.selector);
+        vm.expectRevert(RestMyCase.AlreadyInPool.selector);
         wr.joinPool();
     }
 
     function test_Fork_UnverifiedRejectedByRealIdentity() public {
         address nobody = makeAddr("nobody");
         vm.prank(nobody);
-        vm.expectRevert(WhosRight.NotVerified.selector);
+        vm.expectRevert(RestMyCase.NotVerified.selector);
         wr.joinPool();
     }
 

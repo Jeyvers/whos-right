@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {WhosRight} from "../src/WhosRight.sol";
+import {RestMyCase} from "../src/RestMyCase.sol";
 import {IIdentity} from "../src/interfaces/IIdentity.sol";
 import {IRandomnessSource} from "../src/interfaces/IRandomnessSource.sol";
 import {WitnetRandomnessSource, IWitnetRandomnessV2} from "../src/randomness/WitnetRandomnessSource.sol";
@@ -29,7 +29,7 @@ contract DeployMainnet is Script {
     address internal constant IDENTITY = 0xC361A6E67822a0EDc17D899227dd9FC50BD62F42;
     address internal constant WITNET_RANDOMNESS = 0xC0FFEE98AD1434aCbDB894BbB752e138c1006fAB;
 
-    function run() external returns (WhosRight wr) {
+    function run() external returns (RestMyCase wr) {
         require(block.chainid == CELO_MAINNET, "DeployMainnet: not Celo mainnet");
         require(IDecimals(GOOD_DOLLAR).decimals() == 18, "G$ decimals changed");
         require(IIdentity(IDENTITY).getWhitelistedRoot(address(0xdead)) == address(0), "Identity sanity");
@@ -38,7 +38,7 @@ contract DeployMainnet is Script {
             "Witnet randomness contract mismatch"
         );
 
-        WhosRight.Config memory cfg = WhosRight.Config({
+        RestMyCase.Config memory cfg = RestMyCase.Config({
             token: IERC20(GOOD_DOLLAR),
             identity: IIdentity(IDENTITY),
             randomnessSource: IRandomnessSource(address(0)), // set below
@@ -46,7 +46,7 @@ contract DeployMainnet is Script {
             standardFee: 100e18, // Standard: 100 G$ per party, 6h max commit + 6h max reveal
             fastFee: 300e18, // Fast: 300 G$ per party, 1h max commit + 1h max reveal
             jurySize: vm.envOr("JURY_SIZE", uint256(5)),
-            minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(11)),
+            minPoolSize: vm.envOr("MIN_POOL_SIZE", uint256(5)),
             joinWindow: vm.envOr("JOIN_WINDOW", uint256(3 days)),
             drawWindow: vm.envOr("DRAW_WINDOW", uint256(2 hours)) // Witnet usually 5-10 min; room for retries
         });
@@ -57,11 +57,11 @@ contract DeployMainnet is Script {
         WitnetRandomnessSource rng = new WitnetRandomnessSource(IWitnetRandomnessV2(WITNET_RANDOMNESS));
         cfg.randomnessSource = IRandomnessSource(address(rng));
         cfg.owner = deployer;
-        wr = new WhosRight(cfg);
+        wr = new RestMyCase(cfg);
         vm.stopBroadcast();
 
         console.log("WitnetRandomnessSource", address(rng));
-        console.log("WhosRight             ", address(wr));
+        console.log("RestMyCase             ", address(wr));
         console.log("owner                 ", deployer);
         console.log("standardFee (wei)     ", cfg.standardFee);
         console.log("fastFee (wei)         ", cfg.fastFee);

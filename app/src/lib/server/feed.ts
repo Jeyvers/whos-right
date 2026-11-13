@@ -1,6 +1,6 @@
 import "server-only";
 import type { Address } from "viem";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { sameAddress, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { commentAccess } from "@/lib/comments";
 import type { FeedItem, FeedPage } from "@/lib/crowd";
@@ -19,10 +19,10 @@ type Viewer = { wallets: string[]; person: string | null } | null;
  * indexer replaces this at volume.
  */
 export async function feedPage(opts: { before?: bigint; limit?: number; viewer: Viewer }): Promise<FeedPage> {
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   if (!wr) return { items: [], nextBefore: null };
   const limit = Math.min(opts.limit ?? 10, 20);
-  const count = await publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "caseCount" });
+  const count = await publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "caseCount" });
   let cursor = opts.before !== undefined ? opts.before - 1n : count;
   const items: FeedItem[] = [];
   let scanned = 0;
@@ -35,8 +35,8 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
 
     const reads = await publicClient.multicall({
       contracts: ids.flatMap((id) => [
-        { address: wr, abi: whosRightAbi, functionName: "getCase", args: [id] } as const,
-        { address: wr, abi: whosRightAbi, functionName: "getJurors", args: [id] } as const,
+        { address: wr, abi: restMyCaseAbi, functionName: "getCase", args: [id] } as const,
+        { address: wr, abi: restMyCaseAbi, functionName: "getJurors", args: [id] } as const,
       ]),
       allowFailure: false,
     });
@@ -52,7 +52,7 @@ export async function feedPage(opts: { before?: bigint; limit?: number; viewer: 
     const rootReads = liveJuries.length
       ? ((await publicClient.multicall({
           contracts: liveJuries.flatMap(({ id, jurors }) =>
-            jurors.map((j) => ({ address: wr, abi: whosRightAbi, functionName: "getJurorVote", args: [id, j] }) as const),
+            jurors.map((j) => ({ address: wr, abi: restMyCaseAbi, functionName: "getJurorVote", args: [id, j] }) as const),
           ),
           allowFailure: false,
         })) as { root: Address }[])

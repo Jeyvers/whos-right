@@ -109,7 +109,7 @@ export function usePayFee() {
             address: network.goodDollar,
             abi: erc20Abi,
             functionName: "approve",
-            args: [network.whosRight!, fee], // exact fee, never unlimited
+            args: [network.restMyCase!, fee], // exact fee, never unlimited
             gasEnsured: upfront,
           });
         }

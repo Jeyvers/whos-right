@@ -15,7 +15,7 @@ import { useCase, useCaseText } from "@/hooks/useCase";
 import { useNow } from "@/hooks/useNow";
 import { usePayFee } from "@/hooks/usePayFee";
 import { useTx } from "@/hooks/useTx";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { SPEED, sameAddress, timeLeft, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
@@ -105,7 +105,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
   const [text, setText] = useState("");
   const [saved, setSaved] = useState<{ text: string; sideId: string; contentHash: Hex }>();
   const [attempted, setAttempted] = useState(false);
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
 
   if (sameAddress(address, c.partyA)) {
     return <Panel><p className="font-semibold">This is your own case. Send the link to the other person.</p></Panel>;
@@ -132,7 +132,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
       await pay(c.fee, async () => {
         const digest = await readContract(wagmiConfig, {
           address: wr,
-          abi: whosRightAbi,
+          abi: restMyCaseAbi,
           functionName: "joinDigest",
           args: [caseId, address!],
         });
@@ -140,7 +140,7 @@ function JoinForm({ caseId, c, pk }: { caseId: bigint; c: ChainCase; pk: Hex }) 
         const signature = await privateKeyToAccount(pk).sign({ hash: digest });
         await sendTx({
           address: wr,
-          abi: whosRightAbi,
+          abi: restMyCaseAbi,
           functionName: "joinCase",
           args: [caseId, side.contentHash, c.speed, c.fee, signature],
         });

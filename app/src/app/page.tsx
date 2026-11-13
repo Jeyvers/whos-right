@@ -35,7 +35,7 @@ export default function Home() {
       <section className="bg-court pb-14 pt-8 text-white">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 text-center">
           <h1 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-            Who&apos;s Right?
+            Rest My Case
           </h1>
 
           <p className="max-w-md rounded-2xl bg-white/10 px-4 py-3 text-base text-white/90 sm:text-lg">

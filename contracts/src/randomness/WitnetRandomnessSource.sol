@@ -13,7 +13,7 @@ interface IWitnetRandomnessV2 {
 }
 
 /// @title WitnetRandomnessSource
-/// @notice Production randomness for WhosRight on Celo mainnet.
+/// @notice Production randomness for RestMyCase on Celo mainnet.
 /// @dev Witnet behaviour this adapter relies on (verified against the deployed WitnetRandomnessV2 source):
 ///  - `randomize()` keeps the whole msg.value it is sent (overpayment is NOT refunded), unless a randomize
 ///    already happened in this block, in which case it refunds everything with `transfer` (2300 gas).

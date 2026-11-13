@@ -7,7 +7,7 @@ import { ErrorNote, Hint, Panel } from "@/components/ui";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useNow } from "@/hooks/useNow";
 import { useTx } from "@/hooks/useTx";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { VOTE, timeLeft, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { network } from "@/lib/network";
@@ -19,6 +19,7 @@ import {
   saltFromSignature,
   saveLocalSalt,
   voteKeyMessage,
+  LEGACY_VOTE_KEY_BRAND,
 } from "@/lib/voteKey";
 
 type MyVote = { root: string; commitment: Hex; vote: number; revealed: boolean };
@@ -33,7 +34,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [fallbackUsed, setFallbackUsed] = useState(false);
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
 
   const oneSided = c.mode === 1;
   const committed = myVote.commitment !== `0x${"0".repeat(64)}`;
@@ -74,6 +75,9 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
       async () => saltFromSignature(await signMessageAsync({ message: voteKeyMessage(caseId) })),
       async () =>
         (await authFetch<{ salt: Hex | null }>(`/api/salts?caseId=${caseId}&juror=${juror}`)).salt,
+      // Votes made before the app was renamed were keyed with the old wording.
+      async () =>
+        saltFromSignature(await signMessageAsync({ message: voteKeyMessage(caseId, LEGACY_VOTE_KEY_BRAND) })),
     ];
     for (const get of candidates) {
       const salt = await get();
@@ -89,7 +93,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
     setError(undefined);
     try {
       const salt = await keyForCommit(address);
-      await sendTx({ address: wr, abi: whosRightAbi, functionName: "commitVote", args: [caseId, commitmentOf(caseId, address, vote, salt)] });
+      await sendTx({ address: wr, abi: restMyCaseAbi, functionName: "commitVote", args: [caseId, commitmentOf(caseId, address, vote, salt)] });
       onDone();
     } catch (e) {
       setError(friendlyError(e));
@@ -104,7 +108,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
     setError(undefined);
     try {
       const { salt, vote } = await recoverForReveal(address);
-      await sendTx({ address: wr, abi: whosRightAbi, functionName: "revealVote", args: [caseId, vote, salt] });
+      await sendTx({ address: wr, abi: restMyCaseAbi, functionName: "revealVote", args: [caseId, vote, salt] });
       onDone();
     } catch (e) {
       setError(friendlyError(e));
@@ -121,7 +125,7 @@ export function VotePanel(props: { caseId: bigint; c: ChainCase; jurors: readonl
           <p>
             {oneSided
               ? "You only have one side of the story. Are they right or wrong? Your vote stays secret until everyone has voted."
-              : "Read both sides, then pick who's right. Your vote stays secret until everyone has voted."}
+              : "Read both sides, then pick a side. Your vote stays secret until everyone has voted."}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <button className={`btn text-white ${oneSided ? "bg-side-b" : "bg-side-a"}`} disabled={busy} onClick={() => commit(VOTE.A)}>

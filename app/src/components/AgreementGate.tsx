@@ -39,7 +39,7 @@ export function AgreementGate() {
         <h2 id="agreement-title" className="font-display text-3xl font-extrabold leading-tight">
           Before you start
         </h2>
-        <p>Who&apos;s Right? settles arguments in the open. Here&apos;s how every case works:</p>
+        <p>Rest My Case settles arguments in the open. Here&apos;s how every case works:</p>
         <ul className="flex flex-col gap-3">
           <li className="rounded-2xl bg-verdict/40 p-3">
             <strong>Cases are public.</strong> Anyone can read both sides and the verdict.

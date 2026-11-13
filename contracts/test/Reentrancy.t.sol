@@ -2,20 +2,20 @@
 pragma solidity 0.8.26;
 
 import {BaseTest} from "./utils/BaseTest.sol";
-import {WhosRight} from "../src/WhosRight.sol";
+import {RestMyCase} from "../src/RestMyCase.sol";
 import {MockGoodDollar} from "./mocks/MockGoodDollar.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @notice Contract account that registers ERC777-style hooks on the mock G$ and tries to re-enter WhosRight.
+/// @notice Contract account that registers ERC777-style hooks on the mock G$ and tries to re-enter RestMyCase.
 contract HookAttacker {
-    WhosRight public immutable wr;
+    RestMyCase public immutable wr;
     uint256 public reentryAttempts;
     uint256 public reentryBlocked;
     bool public armed;
     bool public revertOnReceive;
     uint256 public targetCase;
 
-    constructor(WhosRight wr_, MockGoodDollar gd_) {
+    constructor(RestMyCase wr_, MockGoodDollar gd_) {
         wr = wr_;
         gd_.setHook(address(this));
         gd_.approve(address(wr_), type(uint256).max);
@@ -35,7 +35,7 @@ contract HookAttacker {
     }
 
     function openCase(bytes32 content, address signer) external returns (uint256) {
-        return wr.openCase(WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, content, signer);
+        return wr.openCase(RestMyCase.Speed.Standard, RestMyCase.Mode.TwoSided, content, signer);
     }
 
     function commit(uint256 caseId, bytes32 c) external {
@@ -62,11 +62,11 @@ contract HookAttacker {
     function _attack() private {
         if (!armed) return;
         armed = false;
-        _try(abi.encodeCall(WhosRight.withdraw, ()));
-        _try(abi.encodeCall(WhosRight.cancelExpired, (targetCase)));
-        _try(abi.encodeCall(WhosRight.finalize, (targetCase)));
-        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, WhosRight.Mode.TwoSided, keccak256("x"), address(1))));
-        _try(abi.encodeCall(WhosRight.openCase, (WhosRight.Speed.Standard, WhosRight.Mode.OneSided, keccak256("y"), address(0))));
+        _try(abi.encodeCall(RestMyCase.withdraw, ()));
+        _try(abi.encodeCall(RestMyCase.cancelExpired, (targetCase)));
+        _try(abi.encodeCall(RestMyCase.finalize, (targetCase)));
+        _try(abi.encodeCall(RestMyCase.openCase, (RestMyCase.Speed.Standard, RestMyCase.Mode.TwoSided, keccak256("x"), address(1))));
+        _try(abi.encodeCall(RestMyCase.openCase, (RestMyCase.Speed.Standard, RestMyCase.Mode.OneSided, keccak256("y"), address(0))));
         armed = true;
     }
 

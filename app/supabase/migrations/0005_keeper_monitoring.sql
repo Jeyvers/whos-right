@@ -2,7 +2,7 @@
 -- The watchdog runs INSIDE Supabase (pg_cron), so it still alerts if the app or Vercel is down.
 --
 -- Alerts go to Telegram. Before running, replace <TELEGRAM_BOT_TOKEN>, <TELEGRAM_CHAT_ID> and <DATA_KEY>
--- (<DATA_KEY> = network + WhosRight address, e.g. celo-sepolia:0x94a3...; see dataKey in app/src/lib/network.ts).
+-- (<DATA_KEY> = network + RestMyCase address, e.g. celo-sepolia:0x94a3...; see dataKey in app/src/lib/network.ts).
 -- Both are stored in Supabase Vault, not in the job's text.
 
 create table if not exists public.keeper_runs (

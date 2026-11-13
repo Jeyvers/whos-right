@@ -4,7 +4,7 @@ import { Loading } from "@/components/Loading";
 import { Page } from "@/components/ui";
 import { CasesHome } from "./CasesHome";
 
-export const metadata: Metadata = { title: "Cases · Who's Right?" };
+export const metadata: Metadata = { title: "Cases · Rest My Case" };
 
 export default function CasesPage() {
   return (

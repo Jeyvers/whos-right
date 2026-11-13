@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Prose } from "@/components/Prose";
 
-export const metadata: Metadata = { title: "Privacy · Who's Right?" };
+export const metadata: Metadata = { title: "Privacy · Rest My Case" };
 
 export default function Privacy() {
   return (

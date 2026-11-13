@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContracts } from "wagmi";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { formatG } from "@/lib/format";
 import { network } from "@/lib/network";
 import { Loading } from "./Loading";
@@ -26,8 +26,8 @@ function Bolt() {
 
 /** Live reads from the contract: fees per speed, juror pool, case count. */
 export function ContractStatus() {
-  const address = network.whosRight;
-  const contract = { address, abi: whosRightAbi } as const;
+  const address = network.restMyCase;
+  const contract = { address, abi: restMyCaseAbi } as const;
   const { data, isLoading, isError } = useReadContracts({
     contracts: [
       { ...contract, functionName: "speedFee", args: [STANDARD] },

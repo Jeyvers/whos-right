@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {IIdentity} from "../../src/interfaces/IIdentity.sol";
 
-/// @notice Mirrors IdentityV4 semantics relevant to WhosRight: verification expiry, connected accounts
+/// @notice Mirrors IdentityV4 semantics relevant to RestMyCase: verification expiry, connected accounts
 ///         (which can be disconnected and re-connected to another identity), and getWhitelistedRoot.
 contract MockIdentity is IIdentity {
     uint256 public authenticationPeriod = 180; // days

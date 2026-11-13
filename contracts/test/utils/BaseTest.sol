@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
-import {WhosRight} from "../../src/WhosRight.sol";
+import {RestMyCase} from "../../src/RestMyCase.sol";
 import {IIdentity} from "../../src/interfaces/IIdentity.sol";
 import {IRandomnessSource} from "../../src/interfaces/IRandomnessSource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -22,7 +22,7 @@ abstract contract BaseTest is Test {
     MockGoodDollar internal gd;
     MockIdentity internal id;
     MockRandomness internal rng;
-    WhosRight internal wr;
+    RestMyCase internal wr;
 
     address internal owner = makeAddr("owner");
     address internal alice = makeAddr("alice"); // party A
@@ -38,7 +38,7 @@ abstract contract BaseTest is Test {
         gd = new MockGoodDollar();
         id = new MockIdentity();
         rng = new MockRandomness();
-        wr = new WhosRight(_config(JURY, MIN_POOL));
+        wr = new RestMyCase(_config(JURY, MIN_POOL));
         inviteSigner = vm.addr(invitePk);
 
         _verify(alice);
@@ -53,8 +53,8 @@ abstract contract BaseTest is Test {
         vm.roll(block.number + 1);
     }
 
-    function _config(uint256 jury, uint256 minPool) internal view returns (WhosRight.Config memory) {
-        return WhosRight.Config({
+    function _config(uint256 jury, uint256 minPool) internal view returns (RestMyCase.Config memory) {
+        return RestMyCase.Config({
             token: IERC20(address(gd)),
             identity: IIdentity(address(id)),
             randomnessSource: IRandomnessSource(address(rng)),
@@ -93,22 +93,22 @@ abstract contract BaseTest is Test {
 
     function _joinDigest(address target, uint256 caseId, address joiner) internal view returns (bytes32) {
         return MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encode("WhosRight.join", block.chainid, target, caseId, joiner))
+            keccak256(abi.encode("RestMyCase.join", block.chainid, target, caseId, joiner))
         );
     }
 
     function _open() internal returns (uint256 caseId) {
-        return _openSpeed(WhosRight.Speed.Standard);
+        return _openSpeed(RestMyCase.Speed.Standard);
     }
 
-    function _openSpeed(WhosRight.Speed speed) internal returns (uint256 caseId) {
+    function _openSpeed(RestMyCase.Speed speed) internal returns (uint256 caseId) {
         vm.prank(alice);
-        caseId = wr.openCase(speed, WhosRight.Mode.TwoSided, CONTENT_A, inviteSigner);
+        caseId = wr.openCase(speed, RestMyCase.Mode.TwoSided, CONTENT_A, inviteSigner);
     }
 
     /// @dev Joins with the terms read from the case, as B's client would after showing them.
     function _join(uint256 caseId, address who) internal {
-        WhosRight.Case memory c = wr.getCase(caseId);
+        RestMyCase.Case memory c = wr.getCase(caseId);
         bytes memory sig = _sig(caseId, who);
         vm.prank(who);
         wr.joinCase(caseId, CONTENT_B, c.speed, c.fee, sig);
@@ -119,16 +119,16 @@ abstract contract BaseTest is Test {
         _join(caseId, bob);
     }
 
-    function _openAndJoinSpeed(WhosRight.Speed speed) internal returns (uint256 caseId) {
+    function _openAndJoinSpeed(RestMyCase.Speed speed) internal returns (uint256 caseId) {
         caseId = _openSpeed(speed);
         _join(caseId, bob);
     }
 
     function _toDrawn(bytes32 seed) internal returns (uint256 caseId) {
-        return _toDrawnSpeed(seed, WhosRight.Speed.Standard);
+        return _toDrawnSpeed(seed, RestMyCase.Speed.Standard);
     }
 
-    function _toDrawnSpeed(bytes32 seed, WhosRight.Speed speed) internal returns (uint256 caseId) {
+    function _toDrawnSpeed(bytes32 seed, RestMyCase.Speed speed) internal returns (uint256 caseId) {
         caseId = _openAndJoinSpeed(speed);
         wr.requestJury(caseId);
         rng.fulfill(wr.getCase(caseId).randomnessId, seed);

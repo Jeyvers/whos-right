@@ -87,7 +87,7 @@ function ExampleCard({ ex, n }: { ex: Example; n: number }) {
         ))}
       </div>
 
-      <p className="font-display text-lg font-extrabold">{oneSided ? "Right or wrong?" : "Who's right?"}</p>
+      <p className="font-display text-lg font-extrabold">{oneSided ? "Right or wrong?" : "Which side wins?"}</p>
       <div className="flex gap-2">
         <Choice
           label={oneSided ? "Right" : "A"}

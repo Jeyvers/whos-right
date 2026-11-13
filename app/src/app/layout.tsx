@@ -13,7 +13,7 @@ const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: [
 const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Who's Right?",
+  title: "Rest My Case",
   description: "Settle an argument with a jury of real people. 18+.",
   manifest: "/manifest.webmanifest", // lets phones "Add to Home Screen" (needed for push on iPhone)
 };
@@ -26,9 +26,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <header className="bg-court text-white">
             <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-              <Link href="/" aria-label="Who's Right? home" className="flex items-center gap-2 font-display text-xl font-extrabold">
+              <Link href="/" aria-label="Rest My Case home" className="flex items-center gap-2 font-display text-xl font-extrabold">
                 <Scales className="h-9 w-9 rounded-full bg-white p-0.5" />
-                <span className="hidden sm:inline">Who&apos;s Right?</span>
+                <span className="hidden sm:inline">Rest My Case</span>
               </Link>
               <div className="flex items-center gap-3">
                 <HeaderNav />

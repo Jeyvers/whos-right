@@ -10,7 +10,7 @@ import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useCase, useCaseText } from "@/hooks/useCase";
 import { useNow } from "@/hooks/useNow";
 import { useTx } from "@/hooks/useTx";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { REFUND_REASON, SPEED, sameAddress, statusName, timeLeft, ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { formatG } from "@/lib/format";
@@ -77,7 +77,7 @@ export function CaseView() {
         <p className="text-sm font-bold text-ink/60">
           {isA || isB ? "Your case" : isJuror ? "You're on this jury" : oneSided ? "Only one side of the story" : "The case"}
         </p>
-        <Title>{t?.title ?? (oneSided ? "Are they right?" : "Who's right?")}</Title>
+        <Title>{t?.title ?? (oneSided ? "Are they right?" : "Which side wins?")}</Title>
       </div>
 
       {winner && <Verdict caseId={caseId} c={c} jurors={jurors} winner={winner} isA={isA} isB={isB} oneSided={oneSided} />}
@@ -157,9 +157,9 @@ function Confetti() {
 /** "Results are in!": who won in plain words, each juror's vote popping in, and where the money went. */
 function Verdict(props: { caseId: bigint; c: ChainCase; jurors: readonly string[]; winner: "A" | "B"; isA: boolean; isB: boolean; oneSided: boolean }) {
   const { caseId, c, jurors, winner, isA, isB, oneSided } = props;
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
   const votes = useReadContracts({
-    contracts: jurors.map((j) => ({ address: wr, abi: whosRightAbi, functionName: "getJurorVote" as const, args: [caseId, j as `0x${string}`] as const })),
+    contracts: jurors.map((j) => ({ address: wr, abi: restMyCaseAbi, functionName: "getJurorVote" as const, args: [caseId, j as `0x${string}`] as const })),
     allowFailure: false,
     query: { enabled: jurors.length > 0 },
   });
@@ -237,7 +237,7 @@ function StagePanel(props: {
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [note, setNote] = useState<string>();
-  const wr = network.whosRight!;
+  const wr = network.restMyCase!;
 
   async function run(label: string, fn: () => Promise<unknown>) {
     setBusy(label);
@@ -257,11 +257,11 @@ function StagePanel(props: {
     }
   }
   const call = (fn: "cancelExpired" | "drawJury" | "finalize") => () =>
-    sendTx({ address: wr, abi: whosRightAbi, functionName: fn, args: [caseId] });
+    sendTx({ address: wr, abi: restMyCaseAbi, functionName: fn, args: [caseId] });
   const requestJury = async () => {
     const gasPrice = await getGasPrice(wagmiConfig, { chainId: network.chain.id });
-    const fee = await readContract(wagmiConfig, { address: wr, abi: whosRightAbi, functionName: "randomnessFee", args: [gasPrice] });
-    await sendTx({ address: wr, abi: whosRightAbi, functionName: "requestJury", args: [caseId], value: fee === 0n ? 0n : (fee * 12n) / 10n });
+    const fee = await readContract(wagmiConfig, { address: wr, abi: restMyCaseAbi, functionName: "randomnessFee", args: [gasPrice] });
+    await sendTx({ address: wr, abi: restMyCaseAbi, functionName: "requestJury", args: [caseId], value: fee === 0n ? 0n : (fee * 12n) / 10n });
   };
   const btn = (label: string, onClick: () => Promise<unknown>) => (
     <button className="btn self-start" disabled={Boolean(busy)} onClick={() => run(label, onClick)}>
@@ -270,9 +270,9 @@ function StagePanel(props: {
   );
   const pool = useReadContracts({
     contracts: [
-      { address: wr, abi: whosRightAbi, functionName: "activePoolSize" },
-      { address: wr, abi: whosRightAbi, functionName: "minPoolSize" },
-      { address: wr, abi: whosRightAbi, functionName: "jurySize" },
+      { address: wr, abi: restMyCaseAbi, functionName: "activePoolSize" },
+      { address: wr, abi: restMyCaseAbi, functionName: "minPoolSize" },
+      { address: wr, abi: restMyCaseAbi, functionName: "jurySize" },
     ],
     allowFailure: false,
     query: { refetchInterval: 15_000 },
@@ -287,12 +287,12 @@ function StagePanel(props: {
       await requestJury();
       for (let i = 0; i < 10; i++) {
         await new Promise((r) => setTimeout(r, 2000));
-        const ready = await readContract(wagmiConfig, { address: wr, abi: whosRightAbi, functionName: "isRandomnessReady", args: [caseId] });
+        const ready = await readContract(wagmiConfig, { address: wr, abi: restMyCaseAbi, functionName: "isRandomnessReady", args: [caseId] });
         if (ready) break;
         if (i === 9) return;
       }
     }
-    await sendTx({ address: wr, abi: whosRightAbi, functionName: "drawJury", args: [caseId] });
+    await sendTx({ address: wr, abi: restMyCaseAbi, functionName: "drawJury", args: [caseId] });
   };
   const keeper = useKeeperStatus().data;
   const auto = keeper?.configured && keeper.healthy && !keeper.capped;
@@ -411,7 +411,7 @@ function InviteShare({ caseId, deadline }: { caseId: bigint; deadline: string })
             <button
               className="btn"
               onClick={async () => {
-                if (navigator.share) await navigator.share({ title: "Who's Right?", text: "Let's settle this. Tell your side:", url: link }).catch(() => {});
+                if (navigator.share) await navigator.share({ title: "Rest My Case", text: "Let's settle this. Tell your side:", url: link }).catch(() => {});
                 else {
                   await navigator.clipboard.writeText(link);
                   setCopied(true);
@@ -484,7 +484,7 @@ function CrowdSection(props: {
   return (
     <Panel>
       <p className="font-display text-xl font-extrabold">
-        {decided ? "What the public said" : canVote && !myVote ? (oneSided ? "Are they right?" : "Who's right?") : "Public opinion"}
+        {decided ? "What the public said" : canVote && !myVote ? (oneSided ? "Are they right?" : "Which side wins?") : "Public opinion"}
       </p>
       <Poll
         labels={oneSided ? ["Right", "Wrong"] : ["First side", "Their side"]}

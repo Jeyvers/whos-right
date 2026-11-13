@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {BaseTest} from "./utils/BaseTest.sol";
-import {WhosRight} from "../src/WhosRight.sol";
+import {RestMyCase} from "../src/RestMyCase.sol";
 
 contract FuzzTest is BaseTest {
     /// Fee sharing: for any fee and any number of revealers with a majority, the full pot is credited,
@@ -10,7 +10,7 @@ contract FuzzTest is BaseTest {
     function testFuzz_FeeSharing(uint256 fee, uint8 revealMask, uint8 voteMask, bytes32 seed) public {
         fee = bound(fee, 1, wr.MAX_CASE_FEE());
         vm.prank(owner);
-        wr.setSpeedFee(WhosRight.Speed.Standard, fee);
+        wr.setSpeedFee(RestMyCase.Speed.Standard, fee);
 
         uint256 caseId = _toDrawn(seed);
         address[] memory j = wr.getJurors(caseId);

@@ -1,7 +1,7 @@
 import "server-only";
 import { createWalletClient, parseEther, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { identityAbi } from "@/lib/abi/tokens";
 import type { ChainCase } from "@/lib/cases";
 import { decide, type Action } from "@/lib/keeperRules";
@@ -54,7 +54,7 @@ function nextUtcMidnight(): string {
 
 export async function runKeeper(trigger: string): Promise<KeeperResult> {
   const account = keeperAccount();
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   if (!account || !wr) return { ran: false, reason: "not-configured", steps: [], capped: false };
 
   const { data: gotLease } = await db().rpc("keeper_take_lease", { p_network: dataKey, p_seconds: LEASE_SECONDS });
@@ -92,7 +92,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
     value = 0n,
   ): Promise<boolean> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { request } = await publicClient.simulateContract({ account, address: wr!, abi: whosRightAbi, functionName: action, args: args as any, value } as any);
+    const { request } = await publicClient.simulateContract({ account, address: wr!, abi: restMyCaseAbi, functionName: action, args: args as any, value } as any);
     const [gas, gasPrice] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Celo tx-type unions confuse viem's typing
       publicClient.estimateContractGas(request as any),
@@ -128,9 +128,9 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
     const block = await publicClient.getBlock();
     const now = block.timestamp;
     const [caseCount, activePool, minPool] = await Promise.all([
-      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "caseCount" }),
-      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "activePoolSize" }),
-      publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "minPoolSize" }),
+      publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "caseCount" }),
+      publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "activePoolSize" }),
+      publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "minPoolSize" }),
     ]);
     const poolReady = activePool >= minPool;
 
@@ -139,9 +139,9 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
     const end = caseCount < nextCaseId + BigInt(MAX_CASES_SCANNED) ? caseCount : nextCaseId + BigInt(MAX_CASES_SCANNED) - 1n;
     for (let id = nextCaseId; id <= end && steps.length < MAX_TX_PER_RUN && !capped; id++) {
       const [c, jurors, ready] = await Promise.all([
-        publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "getCase", args: [id] }) as Promise<ChainCase>,
-        publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "getJurors", args: [id] }),
-        publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "isRandomnessReady", args: [id] }),
+        publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "getCase", args: [id] }) as Promise<ChainCase>,
+        publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "getJurors", args: [id] }),
+        publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "isRandomnessReady", args: [id] }),
       ]);
       const finished = c.status === 5 || c.status === 6;
       if (finished && cursorMovable) {
@@ -161,7 +161,7 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
         if (action === "requestJury") {
           const fee = await publicClient.readContract({
             address: wr,
-            abi: whosRightAbi,
+            abi: restMyCaseAbi,
             functionName: "randomnessFee",
             args: [await publicClient.getGasPrice()],
           });
@@ -186,11 +186,11 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
 
     // 2. Pool pruning: drop entries whose wallet is no longer the same verified identity.
     if (!capped && !budgetLow && steps.length < MAX_TX_PER_RUN) {
-      const poolLength = await publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "poolLength" });
+      const poolLength = await publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "poolLength" });
       if (nextPoolIndex >= poolLength) nextPoolIndex = 0n;
       const stop = nextPoolIndex + BigInt(MAX_POOL_CHECKED);
       for (let i = nextPoolIndex; i < poolLength && i < stop && steps.length < MAX_TX_PER_RUN && !capped && !budgetLow; i++) {
-        const e = (await publicClient.readContract({ address: wr, abi: whosRightAbi, functionName: "poolEntry", args: [i] })) as {
+        const e = (await publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "poolEntry", args: [i] })) as {
           wallet: Address;
           root: Address;
           leftBlock: bigint;

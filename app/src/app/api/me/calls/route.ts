@@ -1,4 +1,4 @@
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import type { ChainCase } from "@/lib/cases";
 import { dataKey, network } from "@/lib/network";
 import { publicClient } from "@/lib/server/chain";
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const user = await authenticate(request);
   if (!user) return Response.json({ error: "Sign in first." }, { status: 401 });
   const who = await verifiedPerson(user.wallets);
-  if (!who || !network.whosRight) return Response.json({ decided: 0, right: 0, pending: 0, streak: 0, votes: [] });
+  if (!who || !network.restMyCase) return Response.json({ decided: 0, right: 0, pending: 0, streak: 0, votes: [] });
 
   const { data: votes } = await db()
     .from("crowd_votes")
@@ -22,9 +22,9 @@ export async function GET(request: Request) {
     .limit(200);
   if (!votes?.length) return Response.json({ decided: 0, right: 0, pending: 0, streak: 0, votes: [] });
 
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   const cases = (await publicClient.multicall({
-    contracts: votes.map((v) => ({ address: wr, abi: whosRightAbi, functionName: "getCase", args: [BigInt(v.case_id)] }) as const),
+    contracts: votes.map((v) => ({ address: wr, abi: restMyCaseAbi, functionName: "getCase", args: [BigInt(v.case_id)] }) as const),
     allowFailure: false,
   })) as ChainCase[];
 

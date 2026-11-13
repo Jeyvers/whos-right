@@ -12,7 +12,7 @@ import { useMe } from "@/hooks/useMe";
 import { useNow } from "@/hooks/useNow";
 import { useTx } from "@/hooks/useTx";
 import { testnetIdentityAbi } from "@/lib/abi/tokens";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { sameAddress, timeLeft, type ChainCase } from "@/lib/cases";
 import { friendlyError } from "@/lib/errors";
 import { network } from "@/lib/network";
@@ -39,7 +39,7 @@ export function PoolBanner() {
       if (!me.verified && network.testnet) {
         await sendTx({ address: network.testnet.selfVerifyIdentity, abi: testnetIdentityAbi, functionName: "verifyMe" });
       }
-      await sendTx({ address: network.whosRight!, abi: whosRightAbi, functionName: "joinPool" });
+      await sendTx({ address: network.restMyCase!, abi: restMyCaseAbi, functionName: "joinPool" });
       setJoined(true);
       setLeft(false);
       void me.refetch();
@@ -54,7 +54,7 @@ export function PoolBanner() {
     setJoining(true);
     setError(undefined);
     try {
-      await sendTx({ address: network.whosRight!, abi: whosRightAbi, functionName: "leavePool" });
+      await sendTx({ address: network.restMyCase!, abi: restMyCaseAbi, functionName: "leavePool" });
       setLeft(true);
       setJoined(false);
       void me.refetch();
@@ -117,14 +117,14 @@ const SCAN = 50;
 export function JuryDuty() {
   const { address } = useAccount();
   const now = useNow(30_000);
-  const wr = network.whosRight!;
-  const count = useReadContract({ address: wr, abi: whosRightAbi, functionName: "caseCount", query: { refetchInterval: 15_000 } });
+  const wr = network.restMyCase!;
+  const count = useReadContract({ address: wr, abi: restMyCaseAbi, functionName: "caseCount", query: { refetchInterval: 15_000 } });
   const n = Number(count.data ?? 0n);
   const ids = Array.from({ length: Math.min(n, SCAN) }, (_, i) => BigInt(n - i));
   const reads = useReadContracts({
     contracts: ids.flatMap((id) => [
-      { address: wr, abi: whosRightAbi, functionName: "getJurors" as const, args: [id] as const },
-      { address: wr, abi: whosRightAbi, functionName: "getCase" as const, args: [id] as const },
+      { address: wr, abi: restMyCaseAbi, functionName: "getJurors" as const, args: [id] as const },
+      { address: wr, abi: restMyCaseAbi, functionName: "getCase" as const, args: [id] as const },
     ]),
     allowFailure: false,
     query: { enabled: ids.length > 0 && Boolean(address), refetchInterval: 15_000 },

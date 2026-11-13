@@ -3,7 +3,7 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount, useReadContracts } from "wagmi";
-import { whosRightAbi } from "@/lib/abi/whosRight";
+import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { ZERO_ADDRESS, type ChainCase } from "@/lib/cases";
 import { network } from "@/lib/network";
 
@@ -24,14 +24,14 @@ export type CaseText = {
 /** On-chain case + jurors + my vote, refreshed every 8s. */
 export function useCase(caseId: bigint | null) {
   const { address } = useAccount();
-  const wr = network.whosRight;
+  const wr = network.restMyCase;
   const id = caseId ?? 0n;
   const q = useReadContracts({
     contracts: [
-      { address: wr, abi: whosRightAbi, functionName: "getCase", args: [id] },
-      { address: wr, abi: whosRightAbi, functionName: "getJurors", args: [id] },
-      { address: wr, abi: whosRightAbi, functionName: "getJurorVote", args: [id, address ?? ZERO_ADDRESS] },
-      { address: wr, abi: whosRightAbi, functionName: "isRandomnessReady", args: [id] },
+      { address: wr, abi: restMyCaseAbi, functionName: "getCase", args: [id] },
+      { address: wr, abi: restMyCaseAbi, functionName: "getJurors", args: [id] },
+      { address: wr, abi: restMyCaseAbi, functionName: "getJurorVote", args: [id, address ?? ZERO_ADDRESS] },
+      { address: wr, abi: restMyCaseAbi, functionName: "isRandomnessReady", args: [id] },
     ],
     allowFailure: false,
     query: { enabled: Boolean(wr && caseId), refetchInterval: 8_000 },

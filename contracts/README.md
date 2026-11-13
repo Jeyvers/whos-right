@@ -16,7 +16,7 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 
 | Contract | Purpose |
 |---|---|
-| `src/WhosRight.sol` | Cases, juror pool, jury draw, commit-reveal voting, payouts |
+| `src/RestMyCase.sol` | Cases, juror pool, jury draw, commit-reveal voting, payouts |
 | `src/randomness/WitnetRandomnessSource.sol` | Mainnet randomness (Witnet Randomness V2) |
 | `src/randomness/InsecureTestnetRandomness.sol` | **Testnet only, insecure.** Refuses to deploy on Celo mainnet |
 | `src/testnet/TestnetGoodDollar.sol` | Testnet only. G$ stand-in with a faucet |
@@ -28,7 +28,7 @@ Built with Foundry, OpenZeppelin v5.1.0, GoodDollar G$ + Identity, and Witnet ra
 
 | Contract | Address |
 |---|---|
-| WhosRight (v2) | `0x94a36d3437daA547c25c4Bf41907dD891e196d14` |
+| WhosRight (v2, deployed before the rename to RestMyCase) | `0x94a36d3437daA547c25c4Bf41907dD891e196d14` |
 | TestnetGoodDollar (tG$) | `0xB4e8a6c837744A21b6d94C08FDeB3cf4E0696a36` |
 | TestnetIdentity | `0x71386420228BF609FA916EE1B676f3A81c803B2F` |
 | InsecureTestnetRandomness | `0x9C8943Cd33FC2e315b54b4CB761b88Dc6f70D804` |
@@ -220,7 +220,7 @@ Other defaults (env-overridable: `JURY_SIZE`, `MIN_POOL_SIZE`, `JOIN_WINDOW`, `D
 | | Testnet | Mainnet |
 |---|---|---|
 | Jury size | 5 | 5 |
-| Min pool size | 7 | 11 |
+| Min pool size | 7 | 5 |
 | Join window / draw window | 1 day / 1 hour | 3 days / 2 hours |
 
 ## Post-launch list

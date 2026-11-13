@@ -1,6 +1,6 @@
-// Who's Right? service worker: shows jury alerts and opens the case when tapped. Nothing is cached.
+// Rest My Case service worker: shows jury alerts and opens the case when tapped. Nothing is cached.
 self.addEventListener("push", (event) => {
-  let data = { title: "Who's Right?", body: "You have a jury update.", url: "/cases" };
+  let data = { title: "Rest My Case", body: "You have a jury update.", url: "/cases" };
   try {
     data = { ...data, ...event.data.json() };
   } catch {}

@@ -2,13 +2,13 @@
 pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
-import {WhosRight} from "../../src/WhosRight.sol";
+import {RestMyCase} from "../../src/RestMyCase.sol";
 import {MockGoodDollar} from "../mocks/MockGoodDollar.sol";
 import {MockRandomness} from "../mocks/MockRandomness.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract Handler is Test {
-    WhosRight public wr;
+    RestMyCase public wr;
     MockGoodDollar public gd;
     MockRandomness public rng;
     address[] public parties;
@@ -26,7 +26,7 @@ contract Handler is Test {
     uint256 public nWithdrawals;
     mapping(uint256 => mapping(address => uint8)) internal committedVote;
 
-    constructor(WhosRight wr_, MockGoodDollar gd_, MockRandomness rng_, address[] memory parties_, address[] memory jurors_) {
+    constructor(RestMyCase wr_, MockGoodDollar gd_, MockRandomness rng_, address[] memory parties_, address[] memory jurors_) {
         wr = wr_;
         gd = gd_;
         rng = rng_;
@@ -44,9 +44,9 @@ contract Handler is Test {
         uint256 before = gd.balanceOf(address(wr));
         vm.prank(a);
         // Both modes: one-sided cases skip the join step and go straight to the jury.
-        WhosRight.Mode mode = WhosRight.Mode((p / 2) % 2);
-        address invite = mode == WhosRight.Mode.TwoSided ? vm.addr(INVITE_PK) : address(0);
-        try wr.openCase(WhosRight.Speed(p % 2), mode, keccak256(abi.encode(p)), invite) {
+        RestMyCase.Mode mode = RestMyCase.Mode((p / 2) % 2);
+        address invite = mode == RestMyCase.Mode.TwoSided ? vm.addr(INVITE_PK) : address(0);
+        try wr.openCase(RestMyCase.Speed(p % 2), mode, keccak256(abi.encode(p)), invite) {
             ghostDeposited += gd.balanceOf(address(wr)) - before;
             nOpened++;
         } catch {}
@@ -57,10 +57,10 @@ contract Handler is Test {
         if (caseId == 0) return;
         address b = parties[bound(p, 0, parties.length - 1)];
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encode("WhosRight.join", block.chainid, address(wr), caseId, b))
+            keccak256(abi.encode("RestMyCase.join", block.chainid, address(wr), caseId, b))
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(INVITE_PK, digest);
-        WhosRight.Case memory k = wr.getCase(caseId);
+        RestMyCase.Case memory k = wr.getCase(caseId);
         uint256 before = gd.balanceOf(address(wr));
         vm.prank(b);
         try wr.joinCase(caseId, keccak256("b"), k.speed, k.fee, abi.encodePacked(r, s, v)) {
@@ -73,11 +73,11 @@ contract Handler is Test {
         uint256 caseId = _case(c);
         if (caseId == 0) return;
         try wr.requestJury(caseId) {} catch {}
-        WhosRight.Case memory k = wr.getCase(caseId);
-        if (k.status != WhosRight.Status.Drawing) return;
+        RestMyCase.Case memory k = wr.getCase(caseId);
+        if (k.status != RestMyCase.Status.Drawing) return;
         rng.fulfill(k.randomnessId, seed);
         try wr.drawJury(caseId) {
-            if (wr.getCase(caseId).status == WhosRight.Status.Voting) nDrawn++;
+            if (wr.getCase(caseId).status == RestMyCase.Status.Voting) nDrawn++;
         } catch {}
     }
 
@@ -111,7 +111,7 @@ contract Handler is Test {
         uint256 caseId = _case(c);
         if (caseId == 0) return;
         try wr.finalize(caseId) {
-            if (wr.getCase(caseId).status == WhosRight.Status.Resolved) nResolved++;
+            if (wr.getCase(caseId).status == RestMyCase.Status.Resolved) nResolved++;
             else nRefunded++;
         } catch {}
     }
@@ -141,7 +141,7 @@ contract Handler is Test {
     function fullCycle(uint256 pa, uint256 pb, bytes32 seed, uint8 commitMask, uint8 voteMask) external {
         this.open(pa);
         uint256 caseId = wr.caseCount();
-        if (caseId == 0 || wr.getCase(caseId).status != WhosRight.Status.Open) return;
+        if (caseId == 0 || wr.getCase(caseId).status != RestMyCase.Status.Open) return;
         this.join(caseId, pb);
         this.requestAndDraw(caseId, seed);
         address[] memory js = wr.getJurors(caseId);
