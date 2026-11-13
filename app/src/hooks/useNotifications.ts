@@ -4,7 +4,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useAuthFetch } from "./useAuthFetch";
 
-type Prefs = { pushEnabled: boolean; telegramEnabled: boolean; telegramLinked: boolean; pushDevices: number };
+type Prefs = {
+  pushEnabled: boolean;
+  telegramEnabled: boolean;
+  telegramLinked: boolean;
+  pushDevices: number;
+  emailEnabled: boolean;
+  /** Whether the server can send email at all (Resend configured). */
+  emailReady: boolean;
+};
 
 function urlB64ToUint8(base64: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -14,7 +22,7 @@ function urlB64ToUint8(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-/** Jury alerts: browser push on this device, and Telegram. */
+/** Alerts: browser push on this device, Telegram, and email. */
 export function useNotifications() {
   const authFetch = useAuthFetch();
   const qc = useQueryClient();
@@ -95,6 +103,14 @@ export function useNotifications() {
     [authFetch, refresh],
   );
 
+  const setEmailEnabled = useCallback(
+    async (on: boolean) => {
+      await authFetch("/api/notify/prefs", { method: "POST", body: JSON.stringify({ emailEnabled: on }) });
+      await refresh();
+    },
+    [authFetch, refresh],
+  );
+
   const anyOn = Boolean((pushHere && prefs.data?.pushEnabled !== false) || (prefs.data?.telegramLinked && prefs.data.telegramEnabled));
-  return { prefs: prefs.data, pushSupported, pushHere, needsHomeScreen, anyOn, enablePush, disablePush, connectTelegram, disconnectTelegram, setTelegramEnabled };
+  return { prefs: prefs.data, pushSupported, pushHere, needsHomeScreen, anyOn, enablePush, disablePush, connectTelegram, disconnectTelegram, setTelegramEnabled, setEmailEnabled };
 }

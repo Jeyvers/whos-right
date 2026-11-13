@@ -17,3 +17,8 @@ pnpm dev
 - Case text is stored off-chain with a random salt; only `keccak256(abi.encode(salt, text))` goes on-chain, and the
   API only returns text whose hash matches the chain.
 - After changing the contract: `(cd ../contracts && forge build) && node scripts/sync-abi.mjs`.
+- Alerts go out by web push, Telegram and email, sent by the keeper once per wallet per case per kind
+  (`src/lib/server/notify.ts`). Email uses Resend and is off until `RESEND_API_KEY`, `EMAIL_FROM` (on a domain verified in
+  Resend) and `EMAIL_UNSUBSCRIBE_SECRET` are set; run `supabase/migrations/0012_email.sql` first. Addresses aren't stored:
+  they come from the person's Privy account (email login or Google) when an alert is sent. Invites are never emailed by
+  the server (the invite key stays in the browser); "Email it" opens the sender's own mail app.

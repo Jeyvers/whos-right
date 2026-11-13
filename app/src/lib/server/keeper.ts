@@ -5,7 +5,7 @@ import { restMyCaseAbi } from "@/lib/abi/restMyCase";
 import { identityAbi } from "@/lib/abi/tokens";
 import type { ChainCase } from "@/lib/cases";
 import { decide, type Action } from "@/lib/keeperRules";
-import { alertJurorsFor } from "./notify";
+import { alertCaseUpdates, alertJurorsFor } from "./notify";
 import { dataKey, network, rpcTransport } from "@/lib/network";
 import { publicClient } from "./chain";
 import { db } from "./supabase";
@@ -143,6 +143,8 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
         publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "getJurors", args: [id] }),
         publicClient.readContract({ address: wr, abi: restMyCaseAbi, functionName: "isRandomnessReady", args: [id] }),
       ]);
+      // Party and payout alerts (read-only; never blocks or fails the run).
+      await alertCaseUpdates(id, c, jurors, now).catch(() => {});
       const finished = c.status === 5 || c.status === 6;
       if (finished && cursorMovable) {
         nextCaseId = id + 1n;
@@ -177,7 +179,13 @@ export async function runKeeper(trigger: string): Promise<KeeperResult> {
         if (capped) break;
         continue; // jury request skipped to protect the refund reserve
       }
-      // cancelExpired and finalize always end the case.
+      // cancelExpired and finalize always end the case. Alert now: the cursor may move past it before the next run.
+      if (action === "cancelExpired" || action === "finalize") {
+        const ended = (await publicClient
+          .readContract({ address: wr, abi: restMyCaseAbi, functionName: "getCase", args: [id] })
+          .catch(() => null)) as ChainCase | null;
+        if (ended) await alertCaseUpdates(id, ended, jurors, now).catch(() => {});
+      }
       if (atCursor && (action === "cancelExpired" || action === "finalize")) {
         nextCaseId = id + 1n;
         cursorMovable = true;

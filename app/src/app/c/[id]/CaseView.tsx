@@ -423,6 +423,15 @@ function InviteShare({ caseId, deadline }: { caseId: bigint; deadline: string })
             <button className="btn-secondary" onClick={async () => { await navigator.clipboard.writeText(link); setCopied(true); }}>
               {copied ? "Copied" : "Copy link"}
             </button>
+            {/* Opens their own mail app: the invite key never passes through our server. */}
+            <a
+              className="btn-secondary"
+              href={`mailto:?subject=${encodeURIComponent("Let's settle this on Rest My Case")}&body=${encodeURIComponent(
+                `I've put our argument to a jury on Rest My Case. Add your side here (it's private to you):\n\n${link}\n\nYou have ${deadline} to join.`,
+              )}`}
+            >
+              Email it
+            </a>
           </div>
         </>
       ) : (

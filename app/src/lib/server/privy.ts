@@ -31,3 +31,19 @@ export async function authenticate(request: Request): Promise<AuthedUser | null>
     return null;
   }
 }
+
+/**
+ * The email we may write to for this wallet's owner: their verified email login, else their Google email.
+ * Null if the wallet isn't a Privy user or has no email. Never throws.
+ */
+export async function emailForWallet(wallet: string): Promise<{ userId: string; email: string } | null> {
+  try {
+    const user = await privy().users().getByWalletAddress({ address: wallet });
+    const accounts = user.linked_accounts as { type: string; address?: string; email?: string }[];
+    const email =
+      accounts.find((a) => a.type === "email")?.address ?? accounts.find((a) => a.type === "google_oauth")?.email ?? null;
+    return email ? { userId: user.id, email } : null;
+  } catch {
+    return null;
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLinkAccount, usePrivy } from "@privy-io/react-auth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { friendlyError } from "@/lib/errors";
 import { Spinner } from "./Loading";
@@ -22,9 +23,13 @@ function Toggle({ on, busy, onClick, label }: { on: boolean; busy: boolean; onCl
   );
 }
 
-/** Jury alerts: "You've been drawn" and "Time to reveal". Each channel can be turned off. */
+/** Alerts for jurors and parties. Each channel can be turned off. */
 export function NotificationsPanel() {
   const n = useNotifications();
+  const { user } = usePrivy();
+  const { linkEmail } = useLinkAccount();
+  const email = user?.email?.address ?? user?.google?.email ?? null;
+  const emailOn = Boolean(email) && n.prefs?.emailEnabled !== false;
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const run = async (key: string, fn: () => Promise<unknown>) => {
@@ -43,8 +48,11 @@ export function NotificationsPanel() {
 
   return (
     <Panel>
-      <p className="font-display text-xl font-extrabold">Jury alerts</p>
-      <Hint>We&apos;ll tell you when you&apos;re drawn for a jury and when it&apos;s time to reveal your vote.</Hint>
+      <p className="font-display text-xl font-extrabold">Alerts</p>
+      <Hint>
+        We&apos;ll tell you when you&apos;re drawn for a jury, when it&apos;s time to reveal, when the other person adds
+        their side, and when there&apos;s a verdict or money to withdraw.
+      </Hint>
 
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -65,7 +73,7 @@ export function NotificationsPanel() {
       <div className="flex items-center justify-between gap-3 border-t-2 border-ink/10 pt-3">
         <div>
           <p className="font-bold">Telegram</p>
-          <p className="text-sm text-ink/60">{tgLinked ? "Connected to @whosrightbot." : "One tap: opens our bot, tap Start."}</p>
+          <p className="text-sm text-ink/60">{tgLinked ? "Connected to our Telegram bot." : "One tap: opens our bot, tap Start."}</p>
         </div>
         {tgLinked ? (
           <div className="flex items-center gap-3">
@@ -80,6 +88,30 @@ export function NotificationsPanel() {
           </button>
         )}
       </div>
+      {n.prefs?.emailReady && (
+        <div className="flex items-center justify-between gap-3 border-t-2 border-ink/10 pt-3">
+          <div className="min-w-0">
+            <p className="font-bold">Email</p>
+            <p className="truncate text-sm text-ink/60">{email ?? "Add an email to get alerts there too."}</p>
+          </div>
+          {email ? (
+            <Toggle on={emailOn} busy={busy === "email"} label="Email alerts" onClick={() => run("email", () => n.setEmailEnabled(!emailOn))} />
+          ) : (
+            <button
+              className="btn-secondary"
+              disabled={Boolean(busy)}
+              onClick={() =>
+                run("email-link", async () => {
+                  linkEmail();
+                  await n.setEmailEnabled(true);
+                })
+              }
+            >
+              Add email
+            </button>
+          )}
+        </div>
+      )}
       <ErrorNote>{error}</ErrorNote>
     </Panel>
   );
