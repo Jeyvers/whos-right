@@ -1,40 +1,8 @@
 import { ContractStatus } from "@/components/ContractStatus";
+import { ExampleCases } from "@/components/ExampleCases";
 import { LoginButton } from "@/components/LoginButton";
 import { Scales } from "@/components/Scales";
 import { network } from "@/lib/network";
-
-const USE_CASES = [
-  {
-    who: "Roommates",
-    title: "Whose turn is it to take the bins out?",
-    body: "Chores, noise, guests who never leave, splitting the bills.",
-  },
-  {
-    who: "Friends",
-    title: "Who actually won the bet?",
-    body: "Bets, \"I said it first\", match predictions, settling a group-chat standoff.",
-  },
-  {
-    who: "Couples",
-    title: "Was it fair to cancel last minute?",
-    body: "Plans, promises, whose family for the holidays, who forgot what.",
-  },
-  {
-    who: "Money",
-    title: "Should we split the taxi three ways?",
-    body: "Shared costs, who owes who, a borrowed thing that came back broken.",
-  },
-  {
-    who: "Just you",
-    title: "Am I wrong for not going to the wedding?",
-    body: "No one to argue with? Tell the jury what happened and get an honest yes or no.",
-  },
-  {
-    who: "Hot takes",
-    title: "Is a hot dog a sandwich?",
-    body: "The debates that never end, finally ended by strangers with no stake in it.",
-  },
-];
 
 const MODES = [
   {
@@ -70,22 +38,27 @@ export default function Home() {
             Who&apos;s Right?
           </h1>
 
+          <p className="max-w-md rounded-2xl bg-white/10 px-4 py-3 text-base text-white/90 sm:text-lg">
+            My roommate took the trash out last night. This morning I spilled a whole pot of soup into the new bag.
+            Now it stinks. Who takes it out?
+          </p>
+
           {/* The face-off: side A vs side B, weighed on the scales */}
           <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
             <div className="-rotate-3 rounded-2xl border-[3px] border-ink bg-side-a px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
-              <p className="font-display text-2xl font-extrabold sm:text-3xl">You</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;I&apos;m right.&rdquo;</p>
+              <p className="font-display text-xl font-extrabold sm:text-3xl">Me</p>
+              <p className="text-sm font-semibold text-white/90">&ldquo;It&apos;s her week. She takes it out.&rdquo;</p>
             </div>
             <Scales animated className="h-28 w-28 drop-shadow-[0_4px_0_rgba(27,16,53,0.35)] sm:h-36 sm:w-36" />
             <div className="rotate-3 rounded-2xl border-[3px] border-ink bg-side-b px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
-              <p className="font-display text-2xl font-extrabold sm:text-3xl">Them</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;No, I am.&rdquo;</p>
+              <p className="font-display text-xl font-extrabold sm:text-3xl">Roommate</p>
+              <p className="text-sm font-semibold text-white/90">&ldquo;You made the mess. You take it out.&rdquo;</p>
             </div>
           </div>
 
           <p className="max-w-md text-lg text-white/90">
-            Stuck in an argument? Put it to a jury. Five random, verified people read the story, vote in secret,
-            and tell you who&apos;s right. You pay a small fee in G$, and if there&apos;s no verdict, you get it back.
+            Can&apos;t agree? Put it to a jury. 5 random, verified people read both sides, vote in secret, and settle
+            it. Small fee in G$. No verdict, money back.
           </p>
           <LoginButton />
         </div>
@@ -94,18 +67,10 @@ export default function Home() {
       <div className="mx-auto flex max-w-2xl flex-col gap-12 px-4 py-10">
         <section className="flex flex-col gap-4">
           <div>
-            <h2 className="font-display text-2xl font-extrabold">What people bring to the jury</h2>
-            <p className="text-ink/70">Everyday arguments where you just want a fair, outside opinion.</p>
+            <h2 className="font-display text-2xl font-extrabold">You be the jury</h2>
+            <p className="text-ink/70">Real kinds of arguments people bring. Read the story, pick a side.</p>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {USE_CASES.map((u) => (
-              <li key={u.title} className="tile flex flex-col gap-1 p-4">
-                <span className="text-xs font-bold uppercase tracking-wide text-court">{u.who}</span>
-                <p className="font-display text-lg font-bold leading-snug">&ldquo;{u.title}&rdquo;</p>
-                <p className="text-sm text-ink/70">{u.body}</p>
-              </li>
-            ))}
-          </ul>
+          <ExampleCases />
           <p className="text-sm text-ink/60">
             Cases are public, so describe people by role (&ldquo;my roommate&rdquo;), never by name. A verdict is
             an honest outside opinion, not a legal ruling.
