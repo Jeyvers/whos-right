@@ -9,7 +9,7 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM && process.env.EMAIL_UNSUBSCRIBE_SECRET);
 }
 
-export const appUrl = () => (process.env.APP_URL ?? "https://whos-right-nine.vercel.app").replace(/\/$/, "");
+export const appUrl = () => (process.env.APP_URL ?? "https://restmycase.xyz").replace(/\/$/, "");
 
 function sign(userId: string): string {
   return createHmac("sha256", process.env.EMAIL_UNSUBSCRIBE_SECRET ?? "").update(`unsubscribe:${userId}`).digest("base64url");

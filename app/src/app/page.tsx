@@ -35,24 +35,26 @@ export default function Home() {
       <section className="bg-court pb-14 pt-8 text-white">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 text-center">
           <h1 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-            Rest My Case
+            You be the judge.
           </h1>
 
-          <p className="max-w-md rounded-2xl bg-white/10 px-4 py-3 text-base text-white/90 sm:text-lg">
-            My roommate took the trash out last night. This morning I spilled a whole pot of soup into the new bag.
-            Now it stinks. Who takes it out?
+          <p className="max-w-xl rounded-2xl bg-white/10 px-4 py-3 text-left text-sm leading-relaxed text-white/90 sm:px-5 sm:text-base">
+            I can&apos;t have kids, so my best friend became our surrogate. Two years later, a DNA test showed my
+            husband is our son&apos;s father, but I&apos;m not his mother. My husband admitted he&apos;d been sleeping
+            with her the whole time we were &ldquo;trying.&rdquo; I&apos;m divorcing him and giving up my rights to
+            the boy. My husband, my ex-friend and my own family all call me heartless for abandoning a child.
           </p>
 
           {/* The face-off: side A vs side B, weighed on the scales */}
           <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
             <div className="-rotate-3 rounded-2xl border-[3px] border-ink bg-side-a px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
               <p className="font-display text-xl font-extrabold sm:text-3xl">Me</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;It&apos;s her week. She takes it out.&rdquo;</p>
+              <p className="text-sm font-semibold text-white/90">&ldquo;Am I the asshole?&rdquo;</p>
             </div>
             <Scales animated className="h-28 w-28 drop-shadow-[0_4px_0_rgba(27,16,53,0.35)] sm:h-36 sm:w-36" />
             <div className="rotate-3 rounded-2xl border-[3px] border-ink bg-side-b px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
-              <p className="font-display text-xl font-extrabold sm:text-3xl">Roommate</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;You made the mess. You take it out.&rdquo;</p>
+              <p className="font-display text-xl font-extrabold sm:text-3xl">My family</p>
+              <p className="text-sm font-semibold text-white/90">&ldquo;You need to forgive him.&rdquo;</p>
             </div>
           </div>
 
